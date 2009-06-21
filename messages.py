@@ -1,37 +1,31 @@
+from util import handle_exception
 import struct
 
-class PrefixedStruct(struct.Struct):
-    prefix_struct = struct.Struct('!i')
-    def prefix_pack(self, *args):
-        return self.prefix_struct.pack(self.size) + self.pack(*args)
+prefix_struct = struct.Struct('!i')
+type_struct = struct.Struct('!s')
 
-class HandShakeMessage(object):
-    """ Pixtream Protocol handshake message:
+class MessageDecodingError(Exception):
+    pass
 
-        4 bytes: Message Lenght
-        17 bytes: "Pixtream Protocol" string
-        4 bytes: For future use, leave them blank
-        20 bytes: Peer ID
-    """
+def handle_decode_error(exception):
+    raise MessageDecodingError('Error decoding')
 
-    message_struct = PrefixedStruct('!17s4s20s')
-    protocol_string = 'Pixtream Protocol'
+@handle_exception(struct.error, handle_decode_error)
+def get_message_type(self, message):
+    return type_struct.unpack(message)
 
-    def __init__(self, peer_id):
-        self.peer_id = peer_id
+def prefix_message(message):
+    size = len(message)
+    return prefix_struct.pack(size) + message
 
-    def encode(self):
-        return self.message_struct.prefix_pack(self.protocol_string,
-                                               '    ',
-                                               self.peer_id)
+# Handshake Message
 
-    def decode(self, data):
-        try:
-            protocol, extra, peer_id = self.message_struct.unpack(data)
-            if protocol == self.protocol_string:
-                self.peer_id = peer_id
-                return True
-            return False
-        except struct.error:
-            return False
+handshake_struct = struct.Struct('!1s17s8s20s')
+
+def handshake_encode(peer_id):
+    return handshake_struct.pack('H', 'Pixtream Protocol', '        ', peer_id)
+
+@handle_exception(struct.error, handle_decode_error)
+def handshake_decode(message):
+    return handshake_struct.unpack(message)
 
