@@ -1,9 +1,9 @@
 from twisted.internet import reactor
 
-class TwistedTimerException(Exception):
+class TwistedRepeaterException(Exception):
     pass
 
-class TwistedTimer(object):
+class TwistedRepeater(object):
     def __init__(self, function, seconds):
         self.function = function
         self.seconds = seconds
@@ -16,21 +16,21 @@ class TwistedTimer(object):
 
     def start(self, *args, **kwargs):
         if self.call is not None:
-            raise TwistedTimerException('Timer already started')
+            raise TwistedRepeaterException('Timer already started')
         self.repeater(*args, **kwargs)
         self.calling = True
 
     def stop(self):
         if self.call is None:
-            raise TwistedTimerException('Timer not started')
+            raise TwistedRepeaterException('Timer not started')
         self.call.cancel()
         self.call = None
 
     def delay(self, seconds):
         if self.call is None:
-            raise TwistedTimerException('Call has not started')
+            raise TwistedRepeaterException('Call has not started')
         self.call.delay(seconds)
 
-def timer(seconds):
-    return lambda function: TwistedTimer(function, seconds)
+def repeater(seconds):
+    return lambda function: TwistedRepeater(function, seconds)
 
