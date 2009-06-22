@@ -20,7 +20,7 @@ def _parse_options():
     return parser.parse_args()
 
 def run():
-    options, args = _parse_options()
+    options, _ = _parse_options()
 
     site = server.Site(TrackerResource(options.interval))
     reactor.listenTCP(options.port, site)
