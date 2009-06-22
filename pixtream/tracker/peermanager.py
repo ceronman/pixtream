@@ -1,6 +1,6 @@
 import time
 
-from pixtream.twistedrepeater import repeater
+from pixtream.util.twistedrepeater import repeater
 
 class Peer(object):
     def __init__(self, peer_id, ip, port, last_update):
@@ -20,7 +20,7 @@ class PeerManager(object):
     def _check_peers_timeout(self):
         check_time = time.time()
         for peer in self.peers.values():
-            if check_time - peer.last_update > config.peer_timeout:
+            if check_time - peer.last_update > self.peer_timeout:
                 del self.peers[peer.id]
 
     def update_peer(self, peer_id, ip, port):
