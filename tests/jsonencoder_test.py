@@ -1,6 +1,3 @@
-import sys
-sys.path.append('../..')
-
 import unittest
 import json
 import time
@@ -32,9 +29,6 @@ class PixtreamJSONEncoderTest(unittest.TestCase):
             self.assertEqual(peer['id'], 'id{0}'.format(i))
             self.assertEqual(peer['ip'], '192.168.1.{0}'.format(i))
             self.assertEqual(peer['port'], 20000 +  i)
-
-
-
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,7 +1,5 @@
-import sys
-sys.path.append('..')
 import unittest
-import messages
+import pixtream.peer.messages as messages
 import random
 import string
 

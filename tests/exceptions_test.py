@@ -1,13 +1,10 @@
-import sys
-sys.path.append('..')
-
 import unittest
-import util
+from pixtream.util.exceptions import handle_exception
 
 class ExceptionDecoratorTest(unittest.TestCase):
     def test_functionwrapps(self):
 
-        @util.handle_exception(ZeroDivisionError, None)
+        @handle_exception(ZeroDivisionError, None)
         def divide_function(a, b):
             return a / b
 
@@ -15,20 +12,22 @@ class ExceptionDecoratorTest(unittest.TestCase):
         self.assertRaises(ZeroDivisionError, divide_function, 10, 0)
 
     def test_attributeerror(self):
-        fail = True
+        self.fail = False
 
         def handler(e):
-            fail = False
+            self.fail = True
 
-        @util.handle_exception(AttributeError, handler)
+        @handle_exception(AttributeError, handler)
         def test_function():
             return 'hello'.some_attribute
 
-        self.assert_(fail)
+        test_function()
+
+        self.assert_(self.fail)
 
     def test_nonehandler(self):
 
-        @util.handle_exception(AttributeError, None)
+        @handle_exception(AttributeError, None)
         def test_function():
             return 'hello'.some_attribute
 
@@ -36,7 +35,7 @@ class ExceptionDecoratorTest(unittest.TestCase):
 
     def test_noneexception(self):
 
-        @util.handle_exception(None, None)
+        @handle_exception(None, None)
         def test_function():
             return 'hello'.some_attribute
 
