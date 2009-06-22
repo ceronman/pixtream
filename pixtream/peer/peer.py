@@ -1,6 +1,8 @@
 from optparse import OptionParser
-from peer import PeerService
+
 from twisted.internet import reactor
+
+from pixtream.peer.peerservice import PeerService
 
 def parse_options():
     parser = OptionParser()
