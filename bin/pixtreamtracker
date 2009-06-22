@@ -1,0 +1,8 @@
+#!/usr/bin/python
+
+# this is temporary, until setup.py is created
+import sys
+sys.path.append('/home/ceronman/hg/pixtream')
+
+from pixtream.tracker.tracker import run
+run()
