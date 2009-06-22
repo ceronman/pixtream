@@ -1,4 +1,4 @@
-from util import handle_exception
+from pixtream.util.exceptions import handle_exception
 import struct
 
 prefix_struct = struct.Struct('!i')
