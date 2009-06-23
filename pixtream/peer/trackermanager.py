@@ -10,7 +10,7 @@ import json
 
 from twisted.web import client
 
-from twistedrepeater import TwistedRepeater
+from pixtream.util.twistedrepeater import TwistedRepeater
 
 class TrackerManagerError(Exception):
     """
@@ -48,8 +48,10 @@ class TrackerManager(object):
         """Creates a request URL for the tracker with the GET query."""
 
         query = dict(peer_id = self.peer_service.peer_id,
-                     ip = self.peer_service.ip,
                      port = self.peer_service.port)
+
+        if self.peer_service.ip is not None:
+            query.update(ip = self.peer_service.ip)
 
         parts = list(urlparse.urlsplit(self.tracker_url))
         parts[3] = urllib.urlencode(query) # assigns the query part of the URL.
@@ -58,12 +60,26 @@ class TrackerManager(object):
 
     def _on_tracker_contact(self, content):
         try:
-            self.peer_list = json.loads(content)
-            self._connect_repeater.seconds = 30 # FIXME: get value from tracker
+            response = json.loads(content)
+
+            if 'failure_reason' in response:
+                self._on_tracker_failure(response['failure_reason'])
+                return
+
+            if 'request_interval' in response:
+                self._connect_repeater.seconds = response['request_interval']
+
+            if 'peers' in response:
+                self.peer_list = response['peers']
+
+            self._connect_repeater.start()
         except:
             raise TrackerManagerError('Could not parse tracker response')
 
     def _on_tracker_contact_error(self, error):
-        raise TrackerManagerError('Unable to contact the server\n' + error)
+        raise TrackerManagerError('Unable to contact the server\n' + str(error))
+
+    def _on_tracker_failure(self, error):
+        raise TrackerManagerError(error)
 
 
