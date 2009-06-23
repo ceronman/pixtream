@@ -6,25 +6,31 @@ from pixtream.peer.peerservice import PeerService
 
 def parse_options():
     parser = OptionParser()
-
-    parser.add_option('-t', '--tracker', dest='tracker_url',
-                      type='string', default='',
-                      help='The tracker url', metavar='URL')
+    parser.usage = "usage: %prog [options] tracker_url"
 
     parser.add_option('-i', '--ip', dest='ip',
-                      type='string', default='',
+                      type='string',
                       help='IP Address to use', metavar='ADDRESS')
 
     parser.add_option('-p', '--port', dest='port',
                       type='int', default=6000,
                       help='Listening Port', metavar='PORT')
 
-    return parser.parse_args()
+    parser.get_usage()
+
+    options, args = parser.parse_args()
+
+    if len(args) == 0:
+        parser.error('Missing tracker argument')
+
+    if len(args) > 1:
+        parser.error('Too much arguments')
+
+    return options.ip, options.port, args[0]
 
 
-if __name__ == '__main__':
-    options, args = parse_options()
-
-    service = PeerService(options.tracker_url, options.port, options.ip)
-    service.contact_tracker()
+def run():
+    ip, port, tracker = parse_options()
+    service = PeerService(ip, port, tracker)
+    service.connect_to_tracker()
     reactor.run()
