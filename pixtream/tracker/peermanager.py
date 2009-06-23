@@ -14,7 +14,7 @@ class PeerManager(object):
         self.peers = {}
         self.peer_timeout = peer_timeout
 
-        self._check_peers_timeout.start(self)
+        self._check_peers_timeout.start_now(self)
 
     @repeater(1)
     def _check_peers_timeout(self):
