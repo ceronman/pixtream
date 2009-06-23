@@ -7,8 +7,10 @@ Handles connection to the tracker and encoding decoding tracker messages.
 import urlparse
 import urllib
 import json
+import logging
 
 from twisted.web import client
+from twisted.internet import reactor
 
 from pixtream.util.twistedrepeater import TwistedRepeater
 
@@ -31,6 +33,7 @@ class TrackerManager(object):
         """
 
         self._connect_repeater = TwistedRepeater(self.connect_to_tracker)
+        self._first_contact = False
 
         self.peer_service = peer_service
         self.tracker_url = tracker_url
@@ -60,26 +63,31 @@ class TrackerManager(object):
 
     def _on_tracker_contact(self, content):
         try:
+            logging.debug('Recieved tracker response')
             response = json.loads(content)
 
-            if 'failure_reason' in response:
-                self._on_tracker_failure(response['failure_reason'])
+            if u'failure_reason' in response:
+                self._on_tracker_failure(response[u'failure_reason'])
                 return
 
-            if 'request_interval' in response:
-                self._connect_repeater.seconds = response['request_interval']
+            if u'request_interval' in response:
+                self._connect_repeater.seconds = response[u'request_interval']
 
-            if 'peers' in response:
-                self.peer_list = response['peers']
+            if u'peers' in response:
+                self.peer_list = response[u'peers']
 
-            self._connect_repeater.start()
-        except:
-            raise TrackerManagerError('Could not parse tracker response')
+            if not self._first_contact:
+                self._connect_repeater.start_later()
+
+        except Exception as e:
+            self._on_tracker_failure(str(e))
 
     def _on_tracker_contact_error(self, error):
-        raise TrackerManagerError('Unable to contact the server\n' + str(error))
+        logging.error('Unable to contact the tracker: ' + str(error.value))
+        if not self._first_contact:
+            reactor.stop()
 
     def _on_tracker_failure(self, error):
-        raise TrackerManagerError(error)
+        logging.error('Tracker failure: ' + error)
 
 
