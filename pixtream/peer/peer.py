@@ -1,4 +1,6 @@
 from optparse import OptionParser
+import logging
+import sys
 
 from twisted.internet import reactor
 
@@ -28,9 +30,18 @@ def parse_options():
 
     return options.ip, options.port, args[0]
 
+def _setup_logger():
+    format = '%(asctime)s:%(levelname)s:%(module)s:%(lineno)d: %(message)s'
+    logging.basicConfig(level = logging.DEBUG,
+                        format = format,
+                        stream = sys.stdout)
 
 def run():
+    _setup_logger()
     ip, port, tracker = parse_options()
     service = PeerService(ip, port, tracker)
     service.connect_to_tracker()
+
+    print 'Running peer on port {0} with tracker: {1}'.format(port, tracker)
+    print 'Press CTRL-C to quit'
     reactor.run()
