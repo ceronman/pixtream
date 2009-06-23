@@ -2,7 +2,7 @@
 
 # this is temporary, until setup.py is created
 import sys
-sys.path.append('/home/ceronman/hg/pixtream')
+sys.path.append('/home/ceronman/workspace/pixtream')
 
 from pixtream.tracker.tracker import run
 run()
