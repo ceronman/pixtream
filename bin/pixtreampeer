@@ -1,0 +1,8 @@
+#!/usr/bin/python
+
+# this is temporary, until setup.py is created
+import sys
+sys.path.append('/home/ceronman/workspace/pixtream')
+
+from pixtream.peer.peer import run
+run()
