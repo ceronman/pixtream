@@ -35,24 +35,34 @@ class TwistedRepeater(object):
         self.call = None
 
     def _repeater(self, *args, **kwargs):
+        self.call = None
         if self.seconds is not None:
             self.call = reactor.callLater(self.seconds, self._repeater,
                                           *args, **kwargs)
         self.function(*args, **kwargs)
 
-    def start(self, *args, **kwargs):
-        """Starts the repeater with given arguments"""
+    def start_now(self, *args, **kwargs):
+        """Starts the repeater with given arguments immediately"""
 
         if self.call is not None:
-            raise TwistedRepeaterException('Timer already started')
+            return
         self._repeater(*args, **kwargs)
-        self.calling = True
+
+    def start_later(self, *args, **kwargs):
+        """Starts the repeater with given arguments after seconds"""
+
+        if self.call is not None:
+            return
+        self.call = None
+        if self.seconds is not None:
+            self.call = reactor.callLater(self.seconds, self._repeater,
+                                          *args, **kwargs)
 
     def stop(self):
         """Stops the repeater"""
 
         if self.call is None:
-            raise TwistedRepeaterException('Timer not started')
+            return
         self.call.cancel()
         self.call = None
 
@@ -60,10 +70,10 @@ class TwistedRepeater(object):
         """Delays the next call to the repeater n seconds"""
 
         if self.call is None:
-            raise TwistedRepeaterException('Call has not started')
+            return
         self.call.delay(seconds)
 
 def repeater(seconds):
-    """Convenience decorator for creating repeaters""" 
+    """Convenience decorator for creating repeaters"""
     return lambda function: TwistedRepeater(function, seconds)
 
