@@ -20,7 +20,7 @@ class PeerManager(object):
     def _check_peers_timeout(self):
         check_time = time.time()
         for peer in self.peers.values():
-            if check_time - peer.last_update > self.peer_timeout:
+            if check_time - peer.last_update > self.peer_timeout + 10:
                 del self.peers[peer.id]
 
     def update_peer(self, peer_id, ip, port):
