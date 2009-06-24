@@ -26,6 +26,17 @@ class HandShakeMessageTest(unittest.TestCase):
 
         self.assertEqual(prefixed_bytes[:4], '\x00\x00\x00.')
 
+    def test_identity(self):
+        peer_id = ''.join(random.choice(string.letters) for _ in range(20))
+
+        handshake = msg.HandshakeMessage(peer_id)
+
+        bytes = handshake.encode()
+        new_handshake = msg.Message.decode(bytes)
+
+        self.assert_(isinstance(new_handshake, msg.HandshakeMessage))
+
+
 if __name__ == '__main__':
     unittest.main()
 
