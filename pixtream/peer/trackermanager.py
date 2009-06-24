@@ -14,6 +14,12 @@ from twisted.internet import reactor
 
 from pixtream.util.twistedrepeater import TwistedRepeater
 
+class Peer(object):
+    def __init__(self, id, ip, port):
+        self.id = id
+        self.ip = ip
+        self.port = port
+
 class TrackerManagerError(Exception):
     """
     Errors produced by the TrackerManager.
@@ -64,7 +70,7 @@ class TrackerManager(object):
     def _on_tracker_contact(self, content):
         try:
             logging.debug('Recieved tracker response')
-            response = json.loads(content)
+            response = json.loads(content, encoding='ascii')
 
             if u'failure_reason' in response:
                 self._on_tracker_failure(response[u'failure_reason'])
@@ -74,7 +80,7 @@ class TrackerManager(object):
                 self._connect_repeater.seconds = response[u'request_interval']
 
             if u'peers' in response:
-                self.peer_list = response[u'peers']
+                self._update_peers(response[u'peers'])
 
             if not self._first_contact:
                 self._connect_repeater.start_later()
@@ -89,5 +95,13 @@ class TrackerManager(object):
 
     def _on_tracker_failure(self, error):
         logging.error('Tracker failure: ' + error)
+
+    def _update_peers(self, peer_list):
+        try:
+            self.peer_list = [Peer(item[u'id'], item[u'ip'], item[u'port'])
+                              for item in peer_list]
+            self.peer_service.available_peers_updated()
+        except Exception as e:
+            raise TrackerManagerError('Unable to convert peer list: ' + str(e))
 
 
