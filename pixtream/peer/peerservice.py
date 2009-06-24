@@ -1,3 +1,4 @@
+import logging
 from uuid import uuid4
 
 from twisted.application.service import Service
@@ -11,7 +12,6 @@ def generate_peer_id():
 
 class PeerService(Service):
     def __init__(self, ip, port, tracker_url):
-        self.peers = []
         self.port = port
         self.ip = ip
         self.peer_id = generate_peer_id()
@@ -20,6 +20,12 @@ class PeerService(Service):
 
     def connect_to_tracker(self):
         self._tracker_manager.connect_to_tracker()
+
+    def available_peers_updated(self):
+        logging.debug('peers updated')
+
+
+
 
 
 
