@@ -1,31 +1,81 @@
-from pixtream.util.exceptions import handle_exception
 import struct
-
-prefix_struct = struct.Struct('!i')
-type_struct = struct.Struct('!s')
 
 class MessageDecodingError(Exception):
     pass
 
-def handle_decode_error(exception):
-    raise MessageDecodingError('Error decoding')
+class Message(object):
 
-@handle_exception(struct.error, handle_decode_error)
-def get_message_type(self, message):
-    return type_struct.unpack(message)
+    _type_map = {}
+    _prefix_struct = struct.Struct('!i')
+    _type_struct = struct.Struct('!s')
 
-def prefix_message(message):
-    size = len(message)
-    return prefix_struct.pack(size) + message
+    message_type = '?'
+    message_struct = struct.Struct('!i')
 
-# Handshake Message
+    @classmethod
+    def register(cls, class_):
+        cls._type_map[class_.message_type] = class_
+        return class_
 
-handshake_struct = struct.Struct('!1s17s8s20s')
+    @classmethod
+    def decode(cls, bytes):
+        if len(bytes) < 1:
+            raise MessageDecodingError('Decoding empty message')
 
-def handshake_encode(peer_id):
-    return handshake_struct.pack('H', 'Pixtream Protocol', '        ', peer_id)
+        message_type = bytes[0]
+        message_class = Message._type_map.get(message_type)
 
-@handle_exception(struct.error, handle_decode_error)
-def handshake_decode(message):
-    return handshake_struct.unpack(message)
+        if message_class is None:
+            raise MessageDecodingError('Got unregistered message: ' + bytes)
 
+        if message_class is cls:
+            raise MessageDecodingError('Can not decode abstract message')
+
+        try:
+            return message_class.decode(bytes)
+        except struct.error:
+            raise MessageDecodingError('Message not well formatted: ' + bytes )
+
+
+    def encode(self):
+        return self.message_struct.pack(self.message_type)
+
+    def prefix_encode(self):
+        message = self.encode()
+        return Message._prefix_struct.pack(len(message)) + message
+
+    def validate(self):
+        return True
+
+@Message.register
+class HandshakeMessage(Message):
+
+    message_type = 'H'
+
+    message_struct = struct.Struct('!1s17s8s20s')
+
+    def __init__(self, peer_id):
+        self.peer_id = peer_id
+
+    def encode(self):
+        return self.message_struct.pack(self.message_type,
+                                        'Pixtream Protocol',
+                                        '0000',
+                                        self.peer_id)
+
+    @classmethod
+    def decode(cls, bytes):
+        type_, protocol, ext, peer_id = cls.message_struct.unpack(bytes)
+        obj = cls(peer_id)
+        obj._protocol = protocol
+        obj._ext = ext
+        obj._type = type_
+
+        return obj
+
+    def validate(self):
+        try:
+            return (self._protocol == 'Pixtream Protocol' and
+                    self._type == 'H')
+        except AttributeError:
+            return False
