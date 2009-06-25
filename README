@@ -1,0 +1,27 @@
+PIXTREAM is a Peer-to-Peer Streaming System.
+
+Basic usage:
+
+Run the tracker first:
+
+$ bin/pixtreamtracker
+
+Usage: pixtreamtracker [options]
+
+Options:
+  -h, --help                             Show this help message and exit
+  -p PORT, --port=PORT                   Listening Port. Default is 8080
+  -i INTERVAL, --interval=INTERVAL       Interval in seconds for peers to make
+                                         requests
+
+The run one or more peers:
+
+$ bin/pixtreampeer http://localhost:8080
+
+Usage: usage: pixtreampeer [options] tracker_url
+
+Options:
+  -h, --help                             Show this help message and exit
+  -i ADDRESS, --ip=ADDRESS               IP Address to use
+  -p PORT, --port=PORT                   Listening Port. Default is 20000
+
