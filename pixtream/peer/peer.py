@@ -15,7 +15,7 @@ def parse_options():
                       help='IP Address to use', metavar='ADDRESS')
 
     parser.add_option('-p', '--port', dest='port',
-                      type='int', default=6000,
+                      type='int', default=60000,
                       help='Listening Port', metavar='PORT')
 
     parser.get_usage()
@@ -40,6 +40,7 @@ def run():
     _setup_logger()
     ip, port, tracker = parse_options()
     service = PeerService(ip, port, tracker)
+    service.listen()
     service.connect_to_tracker()
 
     print 'Running peer on port {0} with tracker: {1}'.format(port, tracker)

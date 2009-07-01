@@ -9,23 +9,25 @@ class PixtreamProtocol(Int32StringReceiver):
 
     def __init__(self, peer_id):
         self.peer_id = peer_id
+        self.other_id = None
         self.handshaked = False
 
     def connectionMade(self):
-        logging.debug('Connection Made {0}'.format(self.peer_id))
-        self.factory.add_connection(self)
+        logging.debug('Connection made {0}'.format(self.peer_id))
 
-    def connectionLost(self):
-        logging.debug('Connection Lost {0}'.format(self.peer_id))
+    def connectionLost(self, reason):
+        logging.debug('Connection lost {0}. Reason: {1}'.format(self.peer_id,
+                                                                reason))
         self.factory.remove_connection(self)
 
     def stringReceived(self, message):
-        logging.debug('Received Message: ' + repr(message))
+        logging.debug('Received message: ' + repr(message))
 
         try:
             message_object = Message.decode(message)
         except MessageDecodingError as error:
             logging.error(str(error))
+            self.transport.loseConnection()
             return
 
         if isinstance(message_object, HandshakeMessage):
@@ -36,9 +38,16 @@ class PixtreamProtocol(Int32StringReceiver):
         self.transport.write(message)
 
     def send_hanshake(self):
-        handshake = HandshakeMessage(self.factory.peer_id)
-        self.send_message_object(handshake)
+        logging.debug('Sending Handshake')
+        msg = HandshakeMessage(self.factory.peer_id)
+        self.send_message_object(msg)
 
-    def receive_handshake(self, handshake):
-        logging.info('Handshake received')
-        self.handshaked = True
+    def receive_handshake(self, msg):
+        logging.debug('Handshake received')
+        if (msg.validate() and self.factory.allow_connection(msg.peer_id)):
+                self.other_id = msg.peer_id
+                self.factory.add_connection(self)
+                self.send_hanshake()
+                self.handshaked = True
+        else:
+            self.transport.loseConnection()

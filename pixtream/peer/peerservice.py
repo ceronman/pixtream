@@ -1,20 +1,27 @@
 import logging
 from uuid import uuid4
 
-from twisted.application.service import Service
+from twisted.internet import reactor
 
 from pixtream.peer.trackermanager import TrackerManager
 from pixtream.peer.peerdatabase import PeerDatabase
+from pixtream.peer.serverfactory import ServerFactory
+from pixtream.peer.connectionmanager import ConnectionManager
 
-class PeerService(Service):
+class PeerService(object):
     def __init__(self, ip, port, tracker_url):
         self.port = port
         self.ip = ip
         self._generate_peer_id()
+        self._create_connection_manager()
+        self._create_server_factory()
 
         self._tracker_manager = TrackerManager(self, tracker_url)
 
         self._available_peers = PeerDatabase()
+
+    def listen(self):
+        reactor.listenTCP(self.port, self.server_factory)
 
     def connect_to_tracker(self):
         self._tracker_manager.connect_to_tracker()
@@ -34,3 +41,9 @@ class PeerService(Service):
         id = uuid4().hex
         id = id[:14]
         self.peer_id = 'PX0001' +  id
+
+    def _create_server_factory(self):
+        self.server_factory = ServerFactory(self)
+
+    def _create_connection_manager(self):
+        self.connection_manager = ConnectionManager(self)
