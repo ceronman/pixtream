@@ -25,8 +25,7 @@ class PeerDatabase(object):
         assert isinstance(id, str)
         assert len(id) == 20
 
-        if id in self:
-            del self._id_index[id]
+        self._id_index.pop(id, None)
 
     def remove_peers(self, ids):
         assert isinstance(ids, collections.Iterable)
@@ -46,6 +45,9 @@ class PeerDatabase(object):
 
     def __contains__(self, id):
         return id in self._id_index
+
+    def __iter__(self):
+        return self._id_index.itervalues()
 
     @property
     def peer_ids(self):

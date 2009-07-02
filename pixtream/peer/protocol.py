@@ -7,13 +7,18 @@ from pixtream.peer.messages import MessageDecodingError
 
 class PixtreamProtocol(Int32StringReceiver):
 
-    def __init__(self, peer_id):
-        self.peer_id = peer_id
+    def __init__(self):
         self.other_id = None
         self.handshaked = False
 
+    @property
+    def peer_id(self):
+        return self.factory.peer_id
+
     def connectionMade(self):
         logging.debug('Connection made {0}'.format(self.peer_id))
+        if self.other_id is not None:
+            self.send_hanshake()
 
     def connectionLost(self, reason):
         logging.debug('Connection lost {0}. Reason: {1}'.format(self.peer_id,
@@ -44,10 +49,32 @@ class PixtreamProtocol(Int32StringReceiver):
 
     def receive_handshake(self, msg):
         logging.debug('Handshake received')
-        if (msg.validate() and self.factory.allow_connection(msg.peer_id)):
-                self.other_id = msg.peer_id
-                self.factory.add_connection(self)
-                self.send_hanshake()
-                self.handshaked = True
-        else:
-            self.transport.loseConnection()
+
+        if not msg.validate():
+            logging.error('Wrong handshake. Closing connection')
+            self.drop()
+            return
+
+        if not self.factory.allow_connection(msg.peer_id):
+            logging.error('Connection not allowed with ' + msg.peer_id)
+            self.drop()
+            return
+
+        if not self.verify_peer(msg.peer_id):
+            logging.error('Expected a different peer ' + msg.peer_id)
+            self.drop()
+            return
+
+        logging.debug('Good handshake ' + msg.peer_id)
+        self.other_id = msg.peer_id
+        self.factory.add_connection(self)
+        self.send_hanshake()
+        self.handshaked = True
+
+    def verify_peer(self, peer_id):
+        if self.factory.target__id is not None:
+            return peer_id == self.factory.target_id
+
+    def drop(self):
+        self.loseConnection()
+
