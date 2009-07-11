@@ -1,3 +1,9 @@
+"""
+Script to run the Pixtream tracker application
+
+use run() to launch the program
+"""
+
 from optparse import OptionParser
 import logging
 import sys
@@ -28,6 +34,7 @@ def _setup_logger():
                         stream = sys.stdout)
 
 def run():
+    """Runs the tracker application"""
     _setup_logger()
     options, _ = _parse_options()
 

@@ -1,3 +1,5 @@
+"""Twisted tracker resource. It handles HTTP request to the tracker"""
+
 from twisted.web.resource import Resource
 from twisted.internet.abstract import isIPAddress
 
@@ -5,9 +7,18 @@ from pixtream.tracker.peermanager import PeerManager
 from pixtream.tracker.jsonencoder import PixtreamJSONEncoder
 
 class TrackerResource(Resource):
+    """
+    Implements the Twisted resource to handle the requests
+    """
+
     isLeaf = True
 
     def __init__(self, request_interval):
+        """
+        Creates the Resource
+
+        :param request_interval: The seconds interval to check peers
+        """
         Resource.__init__(self)
 
         self._peer_manager = PeerManager(peer_timeout = request_interval)
@@ -21,6 +32,7 @@ class TrackerResource(Resource):
         return self._encoder.encode(answer)
 
     def render_GET(self, request):
+        """Renders the response to peers"""
         args = request.args
 
         peer_id = args.get('peer_id', [None])[0]
