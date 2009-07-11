@@ -1,7 +1,7 @@
 """
-trackermanager.py
+Manage communication with a Pixtream Tracker.
 
-Handles connection to the tracker and encoding decoding tracker messages.
+Encodes and decodes tracker messages. Sends periodical reports to the tracker.
 """
 
 import urlparse
@@ -23,14 +23,15 @@ class TrackerManagerError(Exception):
 
 class TrackerManager(object):
     """
-    Manages the interaction between the Pixtream tracker and
-    the Pixtream peer.
+    Manages the connection with the tracker
     """
 
     def __init__(self, peer_service, tracker_url):
         """
-        Initializes the manager, gets a PeerService object and a URL of the
-        tracker.
+        Initializes the manager.
+
+        :param peer_service: Parent PeerService object.
+        :param tracker_url: URL of the tracker.
         """
 
         self._connect_repeater = TwistedRepeater(self.connect_to_tracker)
@@ -98,5 +99,3 @@ class TrackerManager(object):
             self.peer_service.tracker_updated()
         except Exception as e:
             raise TrackerManagerError('Unable to convert peer list: ' + str(e))
-
-

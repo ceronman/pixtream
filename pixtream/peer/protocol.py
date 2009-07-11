@@ -1,3 +1,7 @@
+"""
+Defines classes for the the Pixtream Protocol
+"""
+
 import logging
 
 from twisted.protocols.basic import Int32StringReceiver
@@ -6,6 +10,12 @@ from pixtream.peer.messages import HandshakeMessage, Message
 from pixtream.peer.messages import MessageDecodingError
 
 class BaseProtocol(Int32StringReceiver):
+    """
+    Base class for the procols of Pixtream
+
+    It is based on the Int32StringReceiver class of Twister which handles
+    int 32 prefixed messages.
+    """
 
     def __init__(self):
         self.partner_id = None
@@ -14,13 +24,19 @@ class BaseProtocol(Int32StringReceiver):
 
     @property
     def handshaked(self):
+        """True if both peers of the connections has send a proper handshake"""
+
         return self.outgoing_handshaked and self.incoming_handshaked
 
     @property
     def partner_name(self):
+        """Returns the IP address of the partner peer"""
+
         return str(self.transport.getPeer())
 
     def stringReceived(self, message):
+        """Overrides method to receive a message without the prefix """
+
         logging.debug('Received: {0} from {1}'.format(repr(message),
                                                       self.partner_name))
 
@@ -35,16 +51,22 @@ class BaseProtocol(Int32StringReceiver):
             self.receive_handshake(message_object)
 
     def send_message_object(self, message_object):
+        """Sends a message object to the partner peer"""
+
         message = message_object.prefix_encode()
         self.transport.write(message)
 
     def send_hanshake(self):
+        """Sends a handshake message"""
+
         logging.debug('Sending Handshake to ' + self.partner_name)
         msg = HandshakeMessage(self.factory.peer_id)
         self.send_message_object(msg)
         self.outgoing_handshaked = True
 
     def check_incoming_handshake(self, msg):
+        """Checks if a received handshake message object is valid"""
+
         if self.incoming_handshaked:
             logging.error('Double handshake from id ' + self.partner_id)
             return False
@@ -60,7 +82,15 @@ class BaseProtocol(Int32StringReceiver):
             return False
         return True
 
+    def drop(self):
+        """Drops the connection"""
+        self.transport.loseConnection()
+
 class IncomingProtocol(BaseProtocol):
+    """
+    Protocol for incoming connections.
+    """
+
     def connectionMade(self):
         logging.debug('Incoming connection made: ' + self.partner_name)
 
@@ -71,6 +101,8 @@ class IncomingProtocol(BaseProtocol):
             self.factory.remove_incoming_connection(self)
 
     def receive_handshake(self, msg):
+        """Handler for a handshake message"""
+
         logging.debug('Handshake received from ' + self.partner_name)
 
         if not self.check_incoming_handshake(msg):
@@ -84,10 +116,10 @@ class IncomingProtocol(BaseProtocol):
 
         self.incoming_handshaked = True
 
-    def drop(self):
-        self.transport.loseConnection()
-
 class OutgoingProtocol(BaseProtocol):
+    """
+    Protocol for outgoing connection.
+    """
 
     def connectionMade(self):
         logging.debug('Outgoing connection made ' + self.partner_name)
@@ -100,6 +132,8 @@ class OutgoingProtocol(BaseProtocol):
         self.drop()
 
     def receive_handshake(self, msg):
+        """Handler for a received handshake message object"""
+
         logging.debug('Handshake received from ' + self.partner_name)
 
         if not self.check_incoming_handshake(msg):
@@ -121,7 +155,3 @@ class OutgoingProtocol(BaseProtocol):
         self.factory.add_outgoing_connection(self)
 
         self.incoming_handshaked = True
-
-    def drop(self):
-        self.transport.loseConnection()
-

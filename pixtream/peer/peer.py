@@ -1,3 +1,9 @@
+"""
+Script to launch a standalone program of a Pixtream Peer.
+
+Use the run() method to launch the program.
+"""
+
 from optparse import OptionParser
 import logging
 import sys
@@ -6,7 +12,7 @@ from twisted.internet import reactor
 
 from pixtream.peer.peerservice import PeerService
 
-def parse_options():
+def _parse_options():
     parser = OptionParser()
     parser.usage = "usage: %prog [options] tracker_url"
 
@@ -37,8 +43,9 @@ def _setup_logger():
                         stream = sys.stdout)
 
 def run():
+    """Runs a peer program."""
     _setup_logger()
-    ip, port, tracker = parse_options()
+    ip, port, tracker = _parse_options()
     service = PeerService(ip, port, tracker)
     service.listen()
     service.connect_to_tracker()
