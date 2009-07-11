@@ -10,6 +10,7 @@ class PixtreamJSONEncoder(JSONEncoder):
     """
 
     def default(self, obj):
+        """Default handler for the encoder."""
         if isinstance(obj, Peer):
             return dict(id = obj.id, ip = obj.ip, port = obj.port)
 
