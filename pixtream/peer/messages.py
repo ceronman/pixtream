@@ -26,7 +26,7 @@ class Message(object):
     """
 
     _type_map = {}
-    _prefix_struct = struct.Struct('!i')
+    _prefix_struct = struct.Struct('!I')
     _type_struct = struct.Struct('!s')
 
     message_type = '?'
@@ -158,5 +158,46 @@ class HandshakeMessage(Message):
         try:
             return (self._protocol == 'Pixtream Protocol' and
                     self._type == 'H')
+        except AttributeError:
+            return False
+
+
+@Message.register
+class DataPackageMessage(Message):
+    """
+    missing
+    """
+
+    message_type = 'D'
+    message_struct = struct.Struct('!1sI')
+
+    def __init__(self, sequence, data):
+        self.sequence = sequence
+        self.data = data
+
+    def encode(self):
+        """Encodes the handshake message."""
+
+        header = self.message_struct.pack(self.message_type, self.sequence)
+        return header + self.data
+
+    @classmethod
+    def decode(cls, bytes):
+        """Decodes the handshake message."""
+
+        bytes = bytes[:cls.message_struct.size]
+        data = bytes[cls.message_struct.size:]
+
+        type_, sequence = cls.message_struct.unpack(bytes)
+        message = cls(sequence, data)
+        message._type = type_
+
+        return message
+
+    def validate(self):
+        """Checks that the protocol string and messsage types are correct."""
+
+        try:
+            return (self._type == 'D' and self.sequence > 0)
         except AttributeError:
             return False
