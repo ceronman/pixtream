@@ -29,8 +29,7 @@ class PeerService(object):
         self.ip = ip
         self._generate_peer_id()
         self._create_connection_manager()
-
-        self._tracker_manager = TrackerManager(self, tracker_url)
+        self._create_tracker_manager(tracker_url)
 
         self.available_peers = PeerDatabase()
 
@@ -42,7 +41,7 @@ class PeerService(object):
         """Contact the tracker for first time"""
         self._tracker_manager.connect_to_tracker()
 
-    def tracker_updated(self):
+    def tracker_updated(self, sender, peers):
         """Hander to be called when the tracker is updated"""
         logging.debug('Peers updated')
 
@@ -61,3 +60,7 @@ class PeerService(object):
 
     def _create_connection_manager(self):
         self.connection_manager = ConnectionManager(self)
+
+    def _create_tracker_manager(self, tracker_url):
+        self._tracker_manager = TrackerManager(self, tracker_url)
+        self._tracker_manager.on_updated.add_handler(self.tracker_updated)

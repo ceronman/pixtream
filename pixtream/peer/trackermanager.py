@@ -13,6 +13,7 @@ from twisted.web import client
 from twisted.internet import reactor
 
 from pixtream.util.twistedrepeater import TwistedRepeater
+from pixtream.util.event import Event
 from pixtream.peer.peerdatabase import Peer
 
 class TrackerManagerError(Exception):
@@ -40,6 +41,7 @@ class TrackerManager(object):
         self.peer_service = peer_service
         self.tracker_url = tracker_url
         self.peer_list = []
+        self.on_updated = Event()
 
     def connect_to_tracker(self):
         """Starts connection with the tracker."""
@@ -96,6 +98,6 @@ class TrackerManager(object):
         try:
             self.peer_list = [Peer(item[u'id'], item[u'ip'], item[u'port'])
                               for item in peer_list]
-            self.peer_service.tracker_updated()
+            self.on_updated.call(self, self.peer_list)
         except Exception as e:
             raise TrackerManagerError('Unable to convert peer list: ' + str(e))
