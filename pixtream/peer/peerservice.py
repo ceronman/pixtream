@@ -26,6 +26,7 @@ class PeerService(object):
         :param tracker_url: The URL of the tracker.
         """
 
+        self.peer_id = None
         self.port = port
         self.ip = ip
         self._generate_peer_id()
