@@ -2,12 +2,8 @@
 Clients for ordinary streaming systems
 '''
 
-import logging
-
 from twisted.internet.protocol import Protocol, ClientFactory
 from twisted.internet import reactor
-
-from pixtream.peer.splitter import Splitter
 
 class TCPStreamClientProtocol(Protocol):
 
