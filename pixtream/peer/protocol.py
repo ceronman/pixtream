@@ -34,6 +34,17 @@ class BaseProtocol(Int32StringReceiver):
 
         return str(self.transport.getPeer())
 
+    def connectionMade(self):
+        logging.debug('Connection made ' + self.partner_name)
+
+    def connectionLost(self, reason):
+        msg = 'Connection lost: ({0}) ({1})'
+        msg = msg.format(self.partner_name, str(reason))
+        logging.debug(msg)
+
+        if self.handshaked:
+            self.factory.remove_connection(self)
+
     def stringReceived(self, message):
         """Overrides method to receive a message without the prefix """
 
@@ -82,6 +93,11 @@ class BaseProtocol(Int32StringReceiver):
             return False
         return True
 
+    def receive_handshake(self, msg):
+        """Handler for a handshake message"""
+
+        logging.debug('Handshake received from ' + self.partner_name)
+
     def drop(self):
         """Drops the connection"""
         self.transport.loseConnection()
@@ -90,15 +106,6 @@ class IncomingProtocol(BaseProtocol):
     """
     Protocol for incoming connections.
     """
-
-    def connectionMade(self):
-        logging.debug('Incoming connection made: ' + self.partner_name)
-
-    def connectionLost(self, reason):
-        logging.debug('Incoming connection lost: ' + str(reason))
-
-        if self.handshaked:
-            self.factory.remove_incoming_connection(self)
 
     def receive_handshake(self, msg):
         """Handler for a handshake message"""
@@ -112,7 +119,7 @@ class IncomingProtocol(BaseProtocol):
 
         self.partner_id = msg.peer_id
         self.send_hanshake()
-        self.factory.add_incoming_connection(self)
+        self.factory.add_connection(self)
 
         self.incoming_handshaked = True
 
@@ -122,14 +129,8 @@ class OutgoingProtocol(BaseProtocol):
     """
 
     def connectionMade(self):
-        logging.debug('Outgoing connection made ' + self.partner_name)
+        BaseProtocol.connectionMade(self)
         self.send_hanshake()
-
-    def connectionLost(self, reason):
-        logging.debug('Incoming connection lost' + str(reason))
-        if self.handshaked:
-            self.factory.remove_outgoing_connection(self)
-        self.drop()
 
     def receive_handshake(self, msg):
         """Handler for a received handshake message object"""
@@ -152,6 +153,6 @@ class OutgoingProtocol(BaseProtocol):
         logging.debug('Good handshake ' + msg.peer_id)
 
         self.partner_id = msg.peer_id
-        self.factory.add_outgoing_connection(self)
+        self.factory.add_connection(self)
 
         self.incoming_handshaked = True

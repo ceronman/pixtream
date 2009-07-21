@@ -9,11 +9,51 @@ from twisted.internet import reactor
 
 from pixtream.peer.protocol import IncomingProtocol, OutgoingProtocol
 from pixtream.util.twistedrepeater import TwistedRepeater
+from pixtream.util.event import Event
 from pixtream.peer.peerdatabase import Peer
 
 # Configuration constants
 # TODO: Use a configuration method instead of this constants
 CHECK_INTERVAL = 5
+
+class ConnectionList(object):
+
+    def __init__(self, protocol_class, manager):
+        self.on_changed = Event()
+        self._connections = {}
+        self._protocol_class = protocol_class
+        self._manager = manager
+
+    def add(self, connection):
+        """Adds a new item to the list of connections."""
+
+        assert isinstance(connection, self._protocol_class)
+        assert isinstance(connection.partner_id, str)
+
+        if connection.partner_id in self._connections:
+            logging.error('Adding existent connection')
+            connection.drop()
+            return
+
+        self._connections[connection.partner_id] = connection
+        self.on_changed.call(self._manager)
+
+    def remove(self, connection):
+        """Removes an item from the list of connections."""
+
+        assert isinstance(connection, self._protocol_class)
+        assert isinstance(connection.partner_id, str)
+
+        if connection.partner_id not in self._connections:
+            logging.error('Removing nonexistent connection')
+            return
+
+        del self._connections[connection.partner_id]
+        self.on_changed.call(self._manager)
+
+    @property
+    def ids(self):
+        return self._connections.keys()
 
 class ConnectionManager(object):
     """
@@ -31,9 +71,13 @@ class ConnectionManager(object):
 
         :param peer_service: The parent peer service.
         """
+        self.on_update = Event()
 
-        self.incoming_connections = {}
-        self.outgoing_connections = {}
+        self.incoming_connections = ConnectionList(IncomingProtocol, self)
+        self.outgoing_connections = ConnectionList(OutgoingProtocol, self)
+
+        self.incoming_connections.on_changed.add_handler(self.on_update.call)
+        self.outgoing_connections.on_changed.add_handler(self.on_update.call)
 
         self._peer_service = peer_service
         self._checker_repeater = TwistedRepeater(self.check_connections,
@@ -44,8 +88,8 @@ class ConnectionManager(object):
     def contacted_peers(self):
         """Returns the IDs of all peers currently contacted."""
 
-        return set(self.incoming_connections.keys() +
-                   self.outgoing_connections.keys())
+        return set(self.incoming_connections.ids +
+                   self.outgoing_connections.ids)
 
     def create_server_factory(self):
         """Returns a newly created server factory for a peer."""
@@ -53,8 +97,8 @@ class ConnectionManager(object):
         factory = ServerFactory()
         factory.protocol = IncomingProtocol
         factory.peer_id = self._peer_service.peer_id
-        factory.add_incoming_connection = self.add_incoming_connection
-        factory.remove_incoming_connection = self.remove_incoming_connection
+        factory.add_connection = self.incoming_connections.add
+        factory.remove_connection = self.incoming_connections.remove
         factory.allow_connection = self.allow_connection
 
         return factory
@@ -66,61 +110,11 @@ class ConnectionManager(object):
         factory.protocol = OutgoingProtocol
         factory.peer_id = self._peer_service.peer_id
         factory.target_id = target_id
-        factory.add_outgoing_connection = self.add_outgoing_connection
-        factory.remove_outgoing_connection = self.remove_outgoing_connection
+        factory.add_connection = self.outgoing_connections.add
+        factory.remove_connection = self.outgoing_connections.remove
         factory.allow_connection = self.allow_connection
 
         return factory
-
-    def add_incoming_connection(self, connection):
-        """Adds a new item to the list of incoming connections."""
-
-        assert isinstance(connection, IncomingProtocol)
-        assert isinstance(connection.partner_id, str)
-
-        if connection.partner_id in self.incoming_connections:
-            logging.error('Adding nonexistent connection')
-            connection.drop()
-            return
-
-        self.incoming_connections[connection.partner_id] = connection
-
-    def remove_incoming_connection(self, connection):
-        """Removes an item from the list of incoming connections."""
-
-        assert isinstance(connection, IncomingProtocol)
-        assert connection.partner_id is not None
-
-        if connection.partner_id not in self.incoming_connections:
-            logging.error('Removing nonexistent connection')
-            return
-
-        del self.incoming_connections[connection.partner_id]
-
-    def add_outgoing_connection(self, connection):
-        """Adds a new item to the list of outgoing connections."""
-
-        assert isinstance(connection, OutgoingProtocol)
-        assert connection.partner_id is not None
-
-        if connection.partner_id in self.outgoing_connections:
-            logging.error('Adding nonexistent connection')
-            connection.drop()
-            return
-
-        self.outgoing_connections[connection.partner_id] = connection
-
-    def remove_outgoing_connection(self, connection):
-        """Removes an item from the list of outgoing connections."""
-
-        assert isinstance(connection, OutgoingProtocol)
-        assert isinstance(connection.partner_id, str)
-
-        if connection.partner_id not in self.outgoing_connections:
-            logging.error('Removing nonexistent connection')
-            return
-
-        del self.outgoing_connections[connection.partner_id]
 
     def allow_connection(self, peer_id):
         """
@@ -139,10 +133,6 @@ class ConnectionManager(object):
         with know peers.
         """
 
-        incoming_connections = self.incoming_connections.keys()
-        outgoing_connections = self.outgoing_connections.keys()
-        logging.debug('Incoming connections ' + str(incoming_connections))
-        logging.debug('Outgoing connections ' + str(outgoing_connections))
         self._contact_peers()
 
     def listen(self):

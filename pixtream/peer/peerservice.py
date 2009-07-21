@@ -10,6 +10,7 @@ from uuid import uuid4
 from pixtream.peer.trackermanager import TrackerManager
 from pixtream.peer.peerdatabase import PeerDatabase
 from pixtream.peer.connectionmanager import ConnectionManager
+from pixtream.util.event import Event
 
 class PeerService(object):
     """
@@ -32,6 +33,18 @@ class PeerService(object):
         self._create_tracker_manager(tracker_url)
 
         self.available_peers = PeerDatabase()
+        self.on_tracker_update = Event()
+        self.on_peers_update = Event()
+
+    @property
+    def incoming_peers(self):
+        """Returns a list of the IDs of the incomming connected peers"""
+        return self.connection_manager.incoming_connections.ids
+
+    @property
+    def outgoing_peers(self):
+        """Returns a list of the IDs of the incomming connected peers"""
+        return self.connection_manager.outgoing_connections.ids
 
     def listen(self):
         """Starts listening on the selected port"""
@@ -41,17 +54,15 @@ class PeerService(object):
         """Contact the tracker for first time"""
         self._tracker_manager.connect_to_tracker()
 
-    def tracker_updated(self, sender, peers):
+    def _update_peers(self, sender, peer_list):
         """Hander to be called when the tracker is updated"""
-        logging.debug('Peers updated')
-
-        self._update_peers()
-
-    def _update_peers(self):
-        peer_list = self._tracker_manager.peer_list
         self.available_peers.update_peers(peer_list)
         self.available_peers.remove_peer(self.peer_id)
-        logging.debug(str(self.available_peers.peer_ids))
+        logging.debug('Tracker updated: ' + str(self.available_peers.peer_ids))
+        self.on_tracker_update.call(self)
+
+    def _update_connections(self, sender):
+        self.on_peers_update.call(self)
 
     def _generate_peer_id(self):
         id = uuid4().hex
@@ -60,7 +71,8 @@ class PeerService(object):
 
     def _create_connection_manager(self):
         self.connection_manager = ConnectionManager(self)
+        self.connection_manager.on_update.add_handler(self._update_connections)
 
     def _create_tracker_manager(self, tracker_url):
         self._tracker_manager = TrackerManager(self, tracker_url)
-        self._tracker_manager.on_updated.add_handler(self.tracker_updated)
+        self._tracker_manager.on_updated.add_handler(self._update_peers)
