@@ -18,7 +18,7 @@ class Splitter(object):
         self._packets = deque()
         self._current_sequence = 0
 
-    def feed_stream(self, data):
+    def push_stream(self, data):
         self._buffer = self._buffer + data
 
         if len(self._buffer) >= self.packet_size:
