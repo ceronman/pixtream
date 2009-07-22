@@ -12,13 +12,13 @@ class MainWindow(GtkBuilderWindow):
 
     builder_file = resources.get_file('glade', 'mainwindow.glade')
 
-    def __init__(self, ip, port, tracker_url):
+    def __init__(self, ip, port, tracker_url, streaming_port):
         super(MainWindow, self).__init__()
-        self._create_peer_service(ip, port, tracker_url)
+        self._create_peer_service(ip, port, tracker_url, streaming_port)
         self._configure_gui()
 
-    def _create_peer_service(self, ip, port, tracker_url):
-        self.peer_service = PeerService(ip, port, tracker_url)
+    def _create_peer_service(self, ip, port, tracker_url, streaming_port):
+        self.peer_service = PeerService(ip, port, tracker_url, streaming_port)
         self.peer_service.on_peers_update.add_handler(self._update_peers)
         self.peer_service.listen()
         self.peer_service.connect_to_tracker()

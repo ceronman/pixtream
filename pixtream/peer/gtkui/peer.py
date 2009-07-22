@@ -11,7 +11,7 @@ from pixtream.peer.gtkui.mainwindow import MainWindow
 
 def run():
     scriptutils.setup_logger()
-    ip, port, tracker = scriptutils.parse_options()
-    window = MainWindow(ip, port, tracker)
+    ip, port, streaming_port, tracker = scriptutils.parse_options()
+    window = MainWindow(ip, port, tracker, streaming_port)
     window.show_all()
     reactor.run()
