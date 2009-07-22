@@ -26,7 +26,7 @@ class Test(unittest.TestCase):
         self.buffer = bytes()
 
         def on_data_joined(sender):
-            self.buffer += joiner.get_stream()
+            self.buffer += joiner.pop_stream()
             print 'got stream'
 
         def on_end_join(sender):
