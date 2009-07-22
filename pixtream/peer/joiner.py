@@ -1,6 +1,6 @@
-'''
+"""
 Joins Pixtream data packets into a Stream
-'''
+"""
 
 from itertools import takewhile, count
 
@@ -24,7 +24,7 @@ class Joiner(object):
     def end_join(self):
         self.on_end_join.call(self)
 
-    def get_stream(self):
+    def pop_stream(self):
         buffer = self._buffer
         self._buffer = bytes()
         return buffer
