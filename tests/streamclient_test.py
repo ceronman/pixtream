@@ -1,48 +1,37 @@
-import sys
-sys.path.append('..')
-
 import unittest
+import string
 import random
-import logging
-from twisted.internet import reactor
 
 from pixtream.peer.splitter import Splitter
 from pixtream.peer.joiner import Joiner
-from pixtream.peer.streamclient import TCPStreamClient
 
-class Test(unittest.TestCase):
+class SplitterJoinerTest(unittest.TestCase):
 
-    def testTCPStreamClient(self):
-        format = '%(asctime)s:%(levelname)s:%(module)s:%(lineno)d: %(message)s'
-        logging.basicConfig(level = logging.DEBUG,
-                        format = format,
-                        stream = sys.stdout)
-        splitter = Splitter(10000)
+    def test_splitter_joiner_(self):
+        SIZE = 4 * (10**3)
+        CHUNK_SIZE = SIZE / 100
+
+        self.initial_data = ''.join(random.choice(string.letters)
+                                    for i in range(SIZE))
+
+        splitter = Splitter(CHUNK_SIZE)
         joiner = Joiner()
-        client = TCPStreamClient(splitter)
 
         packets = []
-
         self.buffer = bytes()
 
         def on_data_joined(sender):
             self.buffer += joiner.pop_stream()
-            print 'got stream'
 
         def on_end_join(sender):
-            file_ = open('result', 'wb')
-            file_.write(self.buffer)
-            file_.close()
-            print 'end join'
+            self.assertEqual(self.buffer, self.initial_data)
 
         def on_new_packet(sender):
             packets.append(sender.pop_packet())
 
         def on_stream_end(sender):
-            print len(packets)
             random.shuffle(packets)
             for packet in packets:
-                print 'pushing:', packet.sequence
                 joiner.push_packet(packet)
             joiner.end_join()
 
@@ -51,8 +40,9 @@ class Test(unittest.TestCase):
         joiner.on_data_joined.add_handler(on_data_joined)
         joiner.on_end_join.add_handler(on_end_join)
 
-        client.connect('localhost', 3000)
-        reactor.run()
+        for char in self.initial_data:
+            splitter.push_stream(char)
+        splitter.end_stream()
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
