@@ -58,8 +58,14 @@ class DataPacketMessage(VariableLengthMessage):
 
     @classmethod
     def create(cls, sequence, data):
-        assert sequence > 0
+        assert sequence >= 0
         msg = cls()
         msg.sequence = sequence
-        msg.payload = data
+        msg.data = data
         return msg
+
+    def unpack_payload(self, payload):
+        self.data = payload
+
+    def pack_payload(self):
+        return self.data

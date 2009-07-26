@@ -5,7 +5,7 @@ Splits streaming data into Pixtream protocol packages
 from collections import deque
 
 from pixtream.util.event import Event
-from pixtream.peer.messages import DataPackageMessage
+from pixtream.peer.specs import DataPacketMessage
 
 class Splitter(object):
 
@@ -34,7 +34,7 @@ class Splitter(object):
         return self._packets.popleft()
 
     def _create_packet(self, packet_data):
-        packet = DataPackageMessage(self._current_sequence, packet_data)
+        packet = DataPacketMessage.create(self._current_sequence, packet_data)
         self._packets.append(packet)
         self._current_sequence += 1
         self.on_new_packet.call(self)
