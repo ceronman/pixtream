@@ -125,10 +125,21 @@ class Message(object):
         """
         Generators that yields conditions necessary for the message to be valid
 
-        Subclasses should override this message
+        Subclasses should override this method
         """
         return
         yield
+
+    @classmethod
+    def create(cls):
+        """
+        Create a new packet.
+
+        Use this instead of the default constructor
+        to build a new message object.
+        Subclasses should override this method
+        """
+        return cls()
 
     def _unpack(self, data):
         fields = self._message_struct.unpack(data)
@@ -169,7 +180,7 @@ class VariableLengthMessage(Message):
 
     def pack(self):
         """Packs the fixed part of the message plus a payload"""
-        super(VariableLengthMessage, self).pack() + self.pack_payload()
+        return super(VariableLengthMessage, self).pack() + self.pack_payload()
 
     def unpack_payload(self, payload):
         """
