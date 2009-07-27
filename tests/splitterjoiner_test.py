@@ -12,7 +12,7 @@ class SplitterJoinerTest(unittest.TestCase):
         CHUNK_SIZE = SIZE / 100
 
         self.initial_data = ''.join(random.choice(string.letters)
-                                    for i in range(SIZE))
+                                    for _ in range(SIZE))
 
         splitter = Splitter(CHUNK_SIZE)
         joiner = Joiner()

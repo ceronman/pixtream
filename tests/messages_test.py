@@ -1,3 +1,4 @@
+from pixtream.peer.specs import PieceBitFieldMessage
 import unittest
 import random
 import string
@@ -37,6 +38,20 @@ class HandShakeMessageTest(unittest.TestCase):
         new_handshake = Message.parse(bytes)
 
         self.assert_(isinstance(new_handshake, specs.HandshakeMessage))
+
+class PieceBitFieldMessageTest(unittest.TestCase):
+
+    def test_bitencoding(self):
+        pieces = set([1, 10, 100, 1000])
+        message = specs.PieceBitFieldMessage.create(pieces)
+
+        code = message.pack()
+
+        object = Message.parse(code)
+
+        self.assert_(isinstance(object, PieceBitFieldMessage))
+        self.assertEqual(object.pieces, pieces)
+
 
 if __name__ == '__main__':
     unittest.main()
