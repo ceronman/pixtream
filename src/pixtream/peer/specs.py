@@ -89,6 +89,22 @@ class RequestDataPacketMessage(FixedLengthMessage):
         yield self.sequence >= 0
 
 @Message.register
+class CancelRequestDataPacketMessage(FixedLengthMessage):
+    """
+    Cancel a previous request of a data packet
+    """
+
+    message_header = 'X'
+
+    fields = [
+        Field('I', 'sequence',
+              """Sequence of the piece to be canceled""")
+    ]
+
+    def valid_conditions(self):
+        yield self.sequence >= 0
+
+@Message.register
 class HeartBeatMessage(FixedLengthMessage):
     """
     Heart Beat Message to keep alive a connection
