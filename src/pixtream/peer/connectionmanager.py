@@ -55,6 +55,7 @@ class ConnectionList(object):
     def ids(self):
         return self._connections.keys()
 
+# TODO: Remove PeerService dependency
 class ConnectionManager(object):
     """
     Maintains a collection of incoming and outgoing connections to a peer.

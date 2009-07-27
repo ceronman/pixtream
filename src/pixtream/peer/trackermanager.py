@@ -22,6 +22,7 @@ class TrackerManagerError(Exception):
     """
     pass
 
+# TODO: remove PeerService dependency
 class TrackerManager(object):
     """
     Manages the connection with the tracker

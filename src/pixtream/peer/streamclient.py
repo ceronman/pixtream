@@ -13,6 +13,7 @@ class TCPStreamClientProtocol(Protocol):
     def connectionLost(self, reason):
         self.factory.connection_lost()
 
+# TODO: remove splitter dependency
 class StreamClient(object):
 
     def __init__(self, splitter):
