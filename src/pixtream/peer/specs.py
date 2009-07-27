@@ -73,6 +73,22 @@ class DataPacketMessage(VariableLengthMessage):
         return self.data
 
 @Message.register
+class RequestDataPacketMessage(FixedLengthMessage):
+    """
+    Used by peers to request a data packet
+    """
+
+    message_header = 'Q'
+
+    fields = [
+        Field('I', 'sequence',
+              """Sequence of the piece requested""")
+    ]
+
+    def valid_conditions(self):
+        yield self.sequence >= 0
+
+@Message.register
 class HeartBeatMessage(FixedLengthMessage):
     """
     Heart Beat Message to keep alive a connection
@@ -205,4 +221,16 @@ class PieceBitFieldMessage(VariableLengthMessage):
     def _decode_bitfield(first, bitfield):
         bitstr = ''.join(format(ord(char), '0>8b') for char in bitfield)
         return set(first + i for i, bit in enumerate(bitstr) if bit == '1')
+
+@Message.register
+class RequestPieceBitFieldMessage(FixedLengthMessage):
+    """
+    Message to request a peer for its piece bit field
+    """
+
+    message_header = 'R'
+    fields = []
+
+
+
 
