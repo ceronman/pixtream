@@ -16,10 +16,12 @@ class Joiner(object):
         self._buffer = bytes()
         self._current_sequence = 0
         self._packets = {}
+        self.sequences = set()
 
     def push_packet(self, packet):
         self._packets[packet.sequence] = packet.data
         self._join_buffer()
+        self._update_sequences()
 
     def end_join(self):
         self.on_end_join.call(self)
@@ -28,6 +30,9 @@ class Joiner(object):
         buffer = self._buffer
         self._buffer = bytes()
         return buffer
+
+    def _update_sequences(self):
+        self.sequences = set(self._packets.keys())
 
     def _join_buffer(self):
         sequences = takewhile(lambda seq: seq in self._packets,
