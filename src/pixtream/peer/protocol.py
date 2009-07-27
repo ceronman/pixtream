@@ -6,8 +6,8 @@ import logging
 
 from twisted.protocols.basic import Int32StringReceiver
 
-from pixtream.peer.messages import HandshakeMessage, Message
-from pixtream.peer.messages import MessageDecodingError
+from pixtream.peer.messages import Message, MessageException
+from pixtream.peer import specs
 
 class BaseProtocol(Int32StringReceiver):
     """
@@ -52,13 +52,13 @@ class BaseProtocol(Int32StringReceiver):
                                                       self.partner_name))
 
         try:
-            message_object = Message.decode(message)
-        except MessageDecodingError as error:
+            message_object = Message.parse(message)
+        except MessageException as error:
             logging.error('Decoding error ' + str(error))
             self.drop()
             return
 
-        if isinstance(message_object, HandshakeMessage):
+        if isinstance(message_object, specs.HandshakeMessage):
             self.receive_handshake(message_object)
 
     def send_message_object(self, message_object):
@@ -71,7 +71,7 @@ class BaseProtocol(Int32StringReceiver):
         """Sends a handshake message"""
 
         logging.debug('Sending Handshake to ' + self.partner_name)
-        msg = HandshakeMessage(self.factory.peer_id)
+        msg = specs.HandshakeMessage.create(self.factory.peer_id)
         self.send_message_object(msg)
         self.outgoing_handshaked = True
 
