@@ -2,6 +2,8 @@
 Message specs of the Pixtream protocol
 """
 
+import math
+
 from pixtream.peer.messages import FixedLengthMessage, VariableLengthMessage
 from pixtream.peer.messages import Message, Field, Payload
 
@@ -69,3 +71,138 @@ class DataPacketMessage(VariableLengthMessage):
 
     def pack_payload(self):
         return self.data
+
+@Message.register
+class HeartBeatMessage(FixedLengthMessage):
+    """
+    Heart Beat Message to keep alive a connection
+
+    Is used by peers to keep connections. In a connection, if a Peer has not
+    received a heart beat message within N seconds, the connection is dropped.
+    N is defined by the Peer's connection mannager.
+    """
+
+    message_header = 'B'
+    fields = []
+
+@Message.register
+class ChokeMessage(FixedLengthMessage):
+    """
+    Message to choke other peer
+    """
+
+    message_header = 'C'
+    fields = []
+
+@Message.register
+class UnChokeMessage(FixedLengthMessage):
+    """
+    Message to unchoke other peer
+    """
+
+    message_header = 'U'
+    fields = []
+
+@Message.register
+class InterestedMessage(FixedLengthMessage):
+    """
+    Message to tell other peers we are interested
+    """
+
+    message_header = 'I'
+    fields = []
+
+@Message.register
+class NotInterestedMessage(FixedLengthMessage):
+    """
+    Message to tell other peers we are not interested
+    """
+
+    message_header = 'N'
+    fields = []
+
+@Message.register
+class GotPieceMessage(FixedLengthMessage):
+    """
+    Message to tell other peers we got a piece
+    """
+
+    message_header = 'G'
+
+    fields = [
+        Field('I', 'sequence',
+              """Sequence of the piece gotten""")
+    ]
+
+    def valid_conditions(self):
+        yield self.sequence >= 0
+
+@Message.register
+class PieceBitFieldMessage(VariableLengthMessage):
+    """
+    Message containing a bit field of the available pieces of a peer
+    """
+
+    message_header = 'F'
+
+    fields = [
+        Field('I', 'first_sequence',
+              """The sequence where the bit field is starting"""),
+
+        Field('I', 'last_sequence',
+              """The sequence of the last bit in the bit field""")
+    ]
+
+    payload = Payload("""The bit field""")
+
+    def valid_conditions(self):
+        yield self.first_sequence >= 0
+        yield self.last_sequence >= 0
+        yield self.last_sequence > self.first_sequence
+        size = (self.last_sequence - self.first_sequence) + 1
+        bitfield_size = math.ceil(size/8.0)
+        yield len(self.bitfield) == bitfield_size
+
+    @classmethod
+    def create(cls, pieces):
+        assert isinstance(pieces, set)
+
+        msg = cls()
+        first, last, bitfield = cls._encode_bitfield(pieces)
+        msg.first_sequence = first
+        msg.last_sequence = last
+        msg.bitfield = bitfield
+
+        return msg
+
+    def unpack_payload(self, payload):
+        self.bitfield = payload
+        self.pieces = self._decode_bitfield(self.first_sequence, self.bitfield)
+
+    def pack_payload(self):
+        return self.bitfield
+
+    @staticmethod
+    def _encode_bitfield(pieces):
+        first = min(pieces)
+        last = max(pieces)
+
+        byte = ''
+        bitfield = ''
+        for piece in range(first, last+1):
+            bit = '1' if piece in pieces else '0'
+            byte += bit
+            if len(byte) == 8:
+                bitfield += chr(int(byte, 2))
+                byte = ''
+        if len(byte) > 0:
+            byte += (8 - len(byte))*'0'
+            bitfield += chr(int(byte, 2))
+
+        return first, last, bitfield
+
+    @staticmethod
+    def _decode_bitfield(first, bitfield):
+        bitstr = ''.join(format(ord(char), '0>8b') for char in bitfield)
+        return set(first + i for i, bit in enumerate(bitstr) if bit == '1')
+
