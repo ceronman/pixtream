@@ -178,4 +178,4 @@ class ConnectionManager(object):
     def _init_factory(self, factory):
         factory.peer_id = self._peer_service.peer_id
         factory.allow_connection = self.allow_connection
-        factory.get_sequences = self._get_sequences()
+        factory.get_sequences = self._get_sequences
