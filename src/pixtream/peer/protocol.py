@@ -107,7 +107,7 @@ class BaseProtocol(Int32StringReceiver):
         """Sends a message object to the partner peer"""
 
         message_object = message_class.create(*args, **kwargs)
-        self.transport.write(message_object.prefix_encode)
+        self.transport.write(message_object.pack_prefixed())
 
     def send_hanshake(self):
         """Sends a handshake message"""
@@ -135,7 +135,7 @@ class BaseProtocol(Int32StringReceiver):
 
     def send_bitfield(self):
         pieces = self.factory.get_sequences()
-        self.send_message(specs.NotInterestedMessage, pieces)
+        self.send_message(specs.PieceBitFieldMessage, pieces)
 
     def send_got_piece(self, sequence):
         self.send_message(specs.GotPieceMessage, sequence)
