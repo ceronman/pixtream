@@ -89,6 +89,7 @@ class PeerService(object):
         id = uuid4().hex
         id = id[:14]
         self.peer_id = 'PX0001' +  id
+        logging.debug('Peer ID: "{0}"'.format(id))
 
     def _create_connection_manager(self):
         self.connection_manager = ConnectionManager(self)
