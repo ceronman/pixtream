@@ -190,6 +190,11 @@ class PieceBitFieldMessage(VariableLengthMessage):
     def valid_conditions(self):
         yield self.first_sequence >= 0
         yield self.last_sequence >= 0
+
+        if self.first_sequence == self.last_sequence:
+            yield len(self.bitfield) == 0
+            return
+
         yield self.last_sequence > self.first_sequence
         size = (self.last_sequence - self.first_sequence) + 1
         bitfield_size = math.ceil(size/8.0)
@@ -216,6 +221,9 @@ class PieceBitFieldMessage(VariableLengthMessage):
 
     @staticmethod
     def _encode_bitfield(pieces):
+        if len(pieces) == 0:
+            return 0, 0, ''
+
         first = min(pieces)
         last = max(pieces)
 
