@@ -3,6 +3,7 @@ Manages incoming and outgoing connections to other peers.
 """
 
 import logging
+import itertools
 
 from twisted.internet.protocol import ServerFactory, ClientFactory
 from twisted.internet import reactor
@@ -51,6 +52,9 @@ class ConnectionList(object):
         del self._connections[connection.partner_id]
         self.on_changed.call(self._manager)
 
+    def __iter__(self):
+        return self._connections.itervalues()
+
     @property
     def ids(self):
         return self._connections.keys()
@@ -92,16 +96,21 @@ class ConnectionManager(object):
         return set(self.incoming_connections.ids +
                    self.outgoing_connections.ids)
 
+    @property
+    def all_connections(self):
+        """Returns an iterator of all current connections"""
+
+        return itertools.chain(self.incoming_connections,
+                               self.outgoing_connections)
+
     def create_server_factory(self):
         """Returns a newly created server factory for a peer."""
 
         factory = ServerFactory()
         factory.protocol = IncomingProtocol
-        factory.peer_id = self._peer_service.peer_id
         factory.add_connection = self.incoming_connections.add
         factory.remove_connection = self.incoming_connections.remove
-        factory.allow_connection = self.allow_connection
-
+        self._init_factory(factory)
         return factory
 
     def create_client_factory(self, target_id):
@@ -109,11 +118,10 @@ class ConnectionManager(object):
 
         factory = ClientFactory()
         factory.protocol = OutgoingProtocol
-        factory.peer_id = self._peer_service.peer_id
         factory.target_id = target_id
         factory.add_connection = self.outgoing_connections.add
         factory.remove_connection = self.outgoing_connections.remove
-        factory.allow_connection = self.allow_connection
+        self._init_factory(factory)
 
         return factory
 
@@ -151,6 +159,10 @@ class ConnectionManager(object):
         factory = self.create_client_factory(peer.id)
         reactor.connectTCP(peer.ip, peer.port, factory)
 
+    def announce_packet(self, sequence):
+        for connection in self.all_connections:
+            connection.send_got_piece(sequence)
+
     def _contact_peers(self):
         available_peers = self._peer_service.available_peers
 
@@ -159,3 +171,11 @@ class ConnectionManager(object):
 
         for peer in not_contacted_peers:
             self.connect_to_peer(peer)
+
+    def _get_sequences(self):
+        return self._peer_service.joiner.sequences
+
+    def _init_factory(self, factory):
+        factory.peer_id = self._peer_service.peer_id
+        factory.allow_connection = self.allow_connection
+        factory.get_sequences = self._get_sequences()

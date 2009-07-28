@@ -80,6 +80,7 @@ class PeerService(object):
 
     def _data_packet_arrived(self, packet):
         self.joiner.push_packet(packet)
+        self.connection_manager.announce_packet(packet.sequence)
 
     def _data_joined(self, joiner):
         self.stream_server.send_stream(joiner.pop_stream())
