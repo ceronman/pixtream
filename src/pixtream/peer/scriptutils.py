@@ -53,7 +53,7 @@ def parse_source_options():
 
 def setup_logger():
     # TODO: use configuration option for file logging
-    format = '%(asctime)s:%(levelname)s:%(module)s:%(lineno)d: %(message)s'
+    format = '%(asctime)s:[%(process)d]%(levelname)s:%(module)s:%(lineno)d: %(message)s'
     logging.basicConfig(level = logging.DEBUG,
                         format = format,
                         stream = sys.stdout)
