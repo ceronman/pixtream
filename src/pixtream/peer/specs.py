@@ -32,7 +32,7 @@ class HandshakeMessage(FixedLengthMessage):
 
     @classmethod
     def create(cls, peer_id):
-        assert isinstance(peer_id, str)
+        assert len(peer_id) == 20
         msg = cls()
         msg.peer_id = peer_id
         msg.protocol_id = 'Pixtream Protocol'
@@ -165,6 +165,14 @@ class GotPieceMessage(FixedLengthMessage):
         Field('I', 'sequence',
               """Sequence of the piece gotten""")
     ]
+
+    @classmethod
+    def create(cls, sequence):
+        assert sequence >= 0
+
+        msg = cls()
+        msg.sequence = sequence
+        return msg
 
     def valid_conditions(self):
         yield self.sequence >= 0
