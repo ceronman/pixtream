@@ -37,7 +37,7 @@ def create_process(command, args, name, stdin=None):
     output = open('{0}.output'.format(name), 'w')
     process = subprocess.Popen([command] + list(args),
                                stdin=sys.stdin if stdin is None else stdin,
-                               stdout=sys.stdout,
+                               stdout=output,
                                stderr=subprocess.STDOUT)
     processes.append(process)
     files.append(output)
