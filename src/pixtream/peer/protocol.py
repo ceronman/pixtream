@@ -100,7 +100,7 @@ class BaseProtocol(Int32StringReceiver):
 
         if isinstance(message_object, specs.GotPieceMessage):
             self.partner_pieces.add(message_object.sequence)
-            logging.debug('Got piece {0}', message_object.sequence)
+            logging.debug('Got piece {0}'.format(message_object.sequence))
             return
 
     def send_message(self, message_class, *args, **kwargs):
