@@ -212,7 +212,12 @@ class OutgoingProtocol(BaseProtocol):
 
     def connectionMade(self):
         BaseProtocol.connectionMade(self)
+        self.factory.end_connection_attempt(self.factory.target_id)
         self.send_hanshake()
+
+    def connectionLost(self):
+        BaseProtocol.connectionLost(self)
+        self.factory.end_connection_attempt(self.factory.target_id)
 
     def receive_handshake(self, msg):
         """Handler for a received handshake message object"""

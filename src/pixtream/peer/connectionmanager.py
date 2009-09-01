@@ -66,6 +66,8 @@ class ConnectionManager(object):
 
         self._peer_service = peer_service
 
+        self._connection_attempts = set()
+
         self.incoming_connections = ConnectionList(IncomingProtocol)
         self.incoming_connections.on_changed.add_handler(self._updated)
 
@@ -86,7 +88,12 @@ class ConnectionManager(object):
         :param peer_id: The ID of the peer to check.
         """
 
-        return peer_id not in self._connections_ids
+        if peer_id in self._connection_attempts:
+            logging.info('Connection attempt not allowed with ' + peer_id)
+            logging.info(str(self._connection_attempts))
+
+        return (peer_id not in self._connections_ids and
+                peer_id not in self._connection_attempts)
 
     def listen(self, port):
         """Starts listening on the given port."""
@@ -98,6 +105,7 @@ class ConnectionManager(object):
         """Establish a new connection with a given peer."""
 
         logging.debug('Connecting to peer:' + peer.id)
+        self._connection_attempts.add(peer.id)
         factory = self._create_client_factory(peer.id)
         reactor.connectTCP(peer.ip, peer.port, factory)
 
@@ -139,6 +147,7 @@ class ConnectionManager(object):
     def _init_factory(self, factory):
         factory.peer_service = self._peer_service
         factory.connection_allowed = self.connection_allowed
+        factory.end_connection_attempt = self._connection_attempts.remove
 
     def _updated(self, connection):
         self.on_update.call(self)
