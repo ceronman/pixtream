@@ -5,15 +5,16 @@ It manages the Tracker Manager and the Connection Manager
 """
 
 import logging
-from uuid import uuid4
+import uuid
 
+from pixtream.peer.piecemanager import PieceManager
 from pixtream.peer.trackermanager import TrackerManager
-from pixtream.peer.peerdatabase import PeerDatabase
 from pixtream.peer.connectionmanager import ConnectionManager
 from pixtream.peer.joiner import Joiner
 from pixtream.peer.splitter import Splitter
 from pixtream.peer.streamserver import TCPStreamServer
 from pixtream.peer.streamclient import TCPStreamClient
+from pixtream.peer.peerdatabase import PeerDatabase
 from pixtream.util.event import Event
 
 class PeerService(object):
@@ -34,19 +35,23 @@ class PeerService(object):
         self.port = port
         self.ip = ip
 
-        self.peer_id = None
+        self.peer_id = self._generate_peer_id()
+        self.tracker_peers = PeerDatabase()
+        self.own_pieces = set()
+        self.pieces_by_partner = {}
+
+        self.piece_manager = None
         self.connection_manager = None
         self.tracker_manager = None
         self.joiner = None
         self.stream_server = None
 
-        self._generate_peer_id()
+        self._create_piece_manager()
         self._create_connection_manager()
         self._create_tracker_manager(tracker_url)
         self._create_joiner()
         self._create_stream_server(streaming_port)
 
-        self.available_peers = PeerDatabase()
         self.on_tracker_update = Event()
         self.on_peers_update = Event()
 
@@ -60,43 +65,57 @@ class PeerService(object):
         """Returns a list of the IDs of the incomming connected peers"""
         return self.connection_manager.outgoing_connections.ids
 
+    @property
+    def pieces(self):
+        return self.piece_manager.own_pieces
+
+    def partner_got_piece(self, partner_id, piece):
+        self.piece_manager.partner_got_piece(partner_id, piece)
+
+    def partner_got_pieces(self, partner_id, pieces):
+        self.piece_manager.partner_got_pieces(partner_id, pieces)
+
     def listen(self):
         """Starts listening on the selected port"""
-        self.connection_manager.listen()
+        self.connection_manager.listen(self.port)
 
     def connect_to_tracker(self):
         """Contact the tracker for first time"""
         self.tracker_manager.connect_to_tracker()
 
     def _update_peers(self, sender, peer_list):
-        """Hander to be called when the tracker is updated"""
-        self.available_peers.update_peers(peer_list)
-        self.available_peers.remove_peer(self.peer_id)
-        logging.debug('Tracker updated: ' + str(self.available_peers.peer_ids))
+        self.tracker_peers.update_peers(peer_list)
+        self.tracker_peers.remove_peer(self.peer_id)
+        logging.debug('Tracker updated: ' + str(self.tracker_peers.peer_ids))
+        self._contact_peers(self.tracker_peers)
         self.on_tracker_update.call(self)
 
     def _update_connections(self, sender):
         self.on_peers_update.call(self)
 
+    def _contact_peers(self, peers):
+        self.connection_manager.connect_to_peers(peers)
+
     def _data_packet_arrived(self, packet):
         self.joiner.push_packet(packet)
-        self.connection_manager.announce_packet(packet.sequence)
+        self.piece_manager.got_new_piece(packet.sequence)
 
     def _data_joined(self, joiner):
         self.stream_server.send_stream(joiner.pop_stream())
 
-    def _generate_peer_id(self):
-        id = uuid4().hex
-        id = id[:14]
-        self.peer_id = 'PX0001' +  id
-        logging.debug('Peer ID: "{0}"'.format(id))
+    def _create_piece_manager(self):
+        self.piece_manager = PieceManager()
 
     def _create_connection_manager(self):
         self.connection_manager = ConnectionManager(self)
         self.connection_manager.on_update.add_handler(self._update_connections)
 
     def _create_tracker_manager(self, tracker_url):
-        self.tracker_manager = TrackerManager(self, tracker_url)
+        self.tracker_manager = TrackerManager(self.peer_id,
+                                              self.ip,
+                                              self.port,
+                                              tracker_url)
+
         self.tracker_manager.on_updated.add_handler(self._update_peers)
 
     def _create_joiner(self):
@@ -106,6 +125,16 @@ class PeerService(object):
     def _create_stream_server(self, streaming_port):
         self.stream_server = TCPStreamServer(streaming_port)
         self.stream_server.listen()
+
+    def _generate_peer_id(self):
+        id = uuid.uuid4().hex
+        id = id[:14]
+        ## TESTING
+        id = format(self.port, '014d')
+        ## END TESTING
+        peer_id = 'PX0001' +  id
+        logging.debug('Generated Peer ID: "{0}"'.format(peer_id))
+        return peer_id
 
 # TODO: Move this to a config based system
 SPLIT_PACKET_SIZE = 64000
