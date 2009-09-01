@@ -28,18 +28,17 @@ class TrackerManager(object):
     Manages the connection with the tracker
     """
 
-    def __init__(self, peer_service, tracker_url):
+    def __init__(self, peer_id, peer_ip, peer_port, tracker_url):
         """
         Initializes the manager.
-
-        :param peer_service: Parent PeerService object.
-        :param tracker_url: URL of the tracker.
         """
 
         self._connect_repeater = TwistedRepeater(self.connect_to_tracker)
         self._first_contact = False
 
-        self.peer_service = peer_service
+        self.peer_id = peer_id
+        self.peer_ip = peer_ip
+        self.peer_port = peer_port
         self.tracker_url = tracker_url
         self.peer_list = []
         self.on_updated = Event()
@@ -55,11 +54,11 @@ class TrackerManager(object):
     def _request_url(self):
         """Creates a request URL for the tracker with the GET query."""
 
-        query = dict(peer_id = self.peer_service.peer_id,
-                     port = self.peer_service.port)
+        query = dict(peer_id = self.peer_id,
+                     port = self.peer_port)
 
-        if self.peer_service.ip is not None:
-            query.update(ip = self.peer_service.ip)
+        if self.peer_ip is not None:
+            query.update(ip = self.peer_ip)
 
         parts = list(urlparse.urlsplit(self.tracker_url))
         parts[3] = urllib.urlencode(query) # assigns the query part of the URL.
