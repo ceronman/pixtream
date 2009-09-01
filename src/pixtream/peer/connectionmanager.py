@@ -8,22 +8,15 @@ import itertools
 from twisted.internet.protocol import ServerFactory, ClientFactory
 from twisted.internet import reactor
 
-from pixtream.peer.protocol import IncomingProtocol, OutgoingProtocol
-from pixtream.util.twistedrepeater import TwistedRepeater
 from pixtream.util.event import Event
-from pixtream.peer.peerdatabase import Peer
-
-# Configuration constants
-# TODO: Use a configuration method instead of this constants
-CHECK_INTERVAL = 5
+from pixtream.peer.protocol import IncomingProtocol, OutgoingProtocol
 
 class ConnectionList(object):
 
-    def __init__(self, protocol_class, manager):
+    def __init__(self, protocol_class):
         self.on_changed = Event()
         self._connections = {}
         self._protocol_class = protocol_class
-        self._manager = manager
 
     def add(self, connection):
         """Adds a new item to the list of connections."""
@@ -37,7 +30,7 @@ class ConnectionList(object):
             return
 
         self._connections[connection.partner_id] = connection
-        self.on_changed.call(self._manager)
+        self.on_changed.call(self)
 
     def remove(self, connection):
         """Removes an item from the list of connections."""
@@ -50,7 +43,7 @@ class ConnectionList(object):
             return
 
         del self._connections[connection.partner_id]
-        self.on_changed.call(self._manager)
+        self.on_changed.call(self)
 
     def __iter__(self):
         return self._connections.itervalues()
@@ -63,38 +56,21 @@ class ConnectionList(object):
 class ConnectionManager(object):
     """
     Maintains a collection of incoming and outgoing connections to a peer.
-
-    The ConnectionManager creates twisted factories for incoming and outgoing
-    connections. Uses the twisted reactor to listen on the Peer port and create
-    new connections to other peers. It checks the available peers every N
-    seconds and generates new connections if is necessary.
     """
 
     def __init__(self, peer_service):
         """
         Creates a new ConnectionManager object.
-
-        :param peer_service: The parent peer service.
         """
         self.on_update = Event()
 
-        self.incoming_connections = ConnectionList(IncomingProtocol, self)
-        self.outgoing_connections = ConnectionList(OutgoingProtocol, self)
-
-        self.incoming_connections.on_changed.add_handler(self.on_update.call)
-        self.outgoing_connections.on_changed.add_handler(self.on_update.call)
-
         self._peer_service = peer_service
-        self._checker_repeater = TwistedRepeater(self.check_connections,
-                                                 CHECK_INTERVAL)
-        self._checker_repeater.start_later()
 
-    @property
-    def contacted_peers(self):
-        """Returns the IDs of all peers currently contacted."""
+        self.incoming_connections = ConnectionList(IncomingProtocol)
+        self.incoming_connections.on_changed.add_handler(self._updated)
 
-        return set(self.incoming_connections.ids +
-                   self.outgoing_connections.ids)
+        self.outgoing_connections = ConnectionList(OutgoingProtocol)
+        self.outgoing_connections.on_changed.add_handler(self._updated)
 
     @property
     def all_connections(self):
@@ -103,8 +79,45 @@ class ConnectionManager(object):
         return itertools.chain(self.incoming_connections,
                                self.outgoing_connections)
 
-    def create_server_factory(self):
-        """Returns a newly created server factory for a peer."""
+    def connection_allowed(self, peer_id):
+        """
+        Returns true if a connection with a peer is allowed.
+
+        :param peer_id: The ID of the peer to check.
+        """
+
+        return peer_id not in self._connections_ids
+
+    def listen(self, port):
+        """Starts listening on the given port."""
+
+        factory = self._create_server_factory()
+        reactor.listenTCP(port, factory)
+
+    def connect_to_peer(self, peer):
+        """Establish a new connection with a given peer."""
+
+        logging.debug('Connecting to peer:' + peer.id)
+        factory = self._create_client_factory(peer.id)
+        reactor.connectTCP(peer.ip, peer.port, factory)
+
+    def connect_to_peers(self, peers):
+        """
+        Connect to a list of peers
+        """
+
+        for peer in peers:
+            if peer.id in self._connections_ids:
+                continue
+            self.connect_to_peer(peer)
+
+    @property
+    def _connections_ids(self):
+
+        return set(self.incoming_connections.ids +
+                   self.outgoing_connections.ids)
+
+    def _create_server_factory(self):
 
         factory = ServerFactory()
         factory.protocol = IncomingProtocol
@@ -113,8 +126,7 @@ class ConnectionManager(object):
         self._init_factory(factory)
         return factory
 
-    def create_client_factory(self, target_id):
-        """Returns a newly created server factory for a peer."""
+    def _create_client_factory(self, target_id):
 
         factory = ClientFactory()
         factory.protocol = OutgoingProtocol
@@ -122,60 +134,11 @@ class ConnectionManager(object):
         factory.add_connection = self.outgoing_connections.add
         factory.remove_connection = self.outgoing_connections.remove
         self._init_factory(factory)
-
         return factory
 
-    def allow_connection(self, peer_id):
-        """
-        Returns true if a connection with a peer is allowed.
-
-        :param peer_id: The ID of the peer to check.
-        """
-
-        return peer_id not in self.contacted_peers
-
-    def check_connections(self):
-        """
-        Checks current connections.
-
-        Checks the state of current connections and establish new connections
-        with know peers.
-        """
-
-        self._contact_peers()
-
-    def listen(self):
-        """Starts listening on the peer port."""
-
-        factory = self.create_server_factory()
-        reactor.listenTCP(self._peer_service.port, factory)
-
-    def connect_to_peer(self, peer):
-        """Establish a new connection with a given peer."""
-
-        assert isinstance(peer, Peer)
-
-        logging.debug('Connecting to peer:' + peer.id)
-        factory = self.create_client_factory(peer.id)
-        reactor.connectTCP(peer.ip, peer.port, factory)
-
-    def announce_packet(self, sequence):
-        for connection in self.all_connections:
-            connection.send_got_piece(sequence)
-
-    def _contact_peers(self):
-        available_peers = self._peer_service.available_peers
-
-        not_contacted_peers = [peer for peer in available_peers
-                               if peer.id not in self.contacted_peers]
-
-        for peer in not_contacted_peers:
-            self.connect_to_peer(peer)
-
-    def _get_sequences(self):
-        return self._peer_service.joiner.sequences
-
     def _init_factory(self, factory):
-        factory.peer_id = self._peer_service.peer_id
-        factory.allow_connection = self.allow_connection
-        factory.get_sequences = self._get_sequences
+        factory.peer_service = self._peer_service
+        factory.connection_allowed = self.connection_allowed
+
+    def _updated(self, connection):
+        self.on_update.call(self)
