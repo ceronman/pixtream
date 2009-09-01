@@ -11,7 +11,7 @@ from pixtream.peer import specs
 
 class BaseProtocol(Int32StringReceiver):
     """
-    Base class for the procols of Pixtream
+    Base class for the protocols of Pixtream
 
     It is based on the Int32StringReceiver class of Twister which handles
     int 32 prefixed messages.
@@ -26,6 +26,21 @@ class BaseProtocol(Int32StringReceiver):
         self.partner_choked = True
         self.partner_interested = False
 
+        self.handlers = {
+            specs.HandshakeMessage: self.receive_handshake,
+            specs.ChokeMessage: self.receive_choke,
+            specs.UnChokeMessage: self.receive_unchoke,
+            specs.InterestedMessage: self.receive_interested,
+            specs.NotInterestedMessage: self.receive_not_interested,
+            specs.HeartBeatMessage: self.receive_heartbeat,
+            specs.PieceBitFieldMessage: self.receive_bitfield,
+            specs.GotPieceMessage: self.receive_got_piece
+        }
+
+    @property
+    def peer_service(self):
+        return self.factory.peer_service
+
     @property
     def handshaked(self):
         """True if both peers of the connections has send a proper handshake"""
@@ -33,17 +48,17 @@ class BaseProtocol(Int32StringReceiver):
         return self.outgoing_handshaked and self.incoming_handshaked
 
     @property
-    def partner_name(self):
+    def partner_address(self):
         """Returns the IP address of the partner peer"""
 
         return str(self.transport.getPeer())
 
     def connectionMade(self):
-        logging.debug('Connection made ' + self.partner_name)
+        logging.debug('Connection made ' + self.partner_address)
 
     def connectionLost(self, reason):
         msg = 'Connection lost: ({0}) ({1})'
-        msg = msg.format(self.partner_name, str(reason))
+        msg = msg.format(self.partner_address, str(reason))
         logging.debug(msg)
 
         if self.handshaked:
@@ -53,9 +68,8 @@ class BaseProtocol(Int32StringReceiver):
         """Overrides method to receive a message without the prefix """
 
         logging.debug('Received: {0} from {1}'.format(repr(message),
-                                                      self.partner_name))
+                                                      self.partner_address))
 
-        # if we have hands
         if self.handshaked and self.choked:
             logging.info('Ignoring message because the peer is choked')
             return
@@ -67,41 +81,42 @@ class BaseProtocol(Int32StringReceiver):
             self.drop()
             return
 
-        if isinstance(message_object, specs.HandshakeMessage):
-            self.receive_handshake(message_object)
-            return
+        handler = self.handlers.get(type(message_object), self.receive_default)
+        handler(message_object)
 
-        if not self.handshaked:
-            logging.error('Received a message before handshake')
-            self.drop()
+    def receive_handshake(self, msg):
+        pass
 
-        if isinstance(message_object, specs.ChokeMessage):
-            self.partner_choked = True
-            return
+    def receive_choke(self, msg):
+        self._check_handshaked()
+        self.partner_choked = True
 
-        if isinstance(message_object, specs.UnChokeMessage):
-            self.partner_choked = False
-            return
+    def receive_unchoke(self, msg):
+        self._check_handshaked()
+        self.partner_choked = False
 
-        if isinstance(message_object, specs.InterestedMessage):
-            self.partner_interested = True
-            return
+    def receive_interested(self, msg):
+        self._check_handshaked()
+        self.partner_interested = True
 
-        if isinstance(message_object, specs.NotInterestedMessage):
-            self.partner_interested = False
-            return
+    def receive_not_interested(self, msg):
+        self._check_handshaked()
+        self.partner_interested = False
 
-        if isinstance(message_object, specs.HeartBeatMessage):
-            return
+    def receive_bitfield(self, msg):
+        self._check_handshaked()
+        self.peer_service.partner_got_pieces(self.partner_id, msg.pieces)
 
-        if isinstance(message_object, specs.PieceBitFieldMessage):
-            self.partner_pieces = message_object.pieces
-            return
+    def receive_got_piece(self, msg):
+        self._check_handshaked()
+        self.peer_service.partner_got_piece(self.partner_id, msg.sequence)
+        logging.debug('Got piece {0}'.format(msg.sequence))
 
-        if isinstance(message_object, specs.GotPieceMessage):
-            self.partner_pieces.add(message_object.sequence)
-            logging.debug('Got piece {0}'.format(message_object.sequence))
-            return
+    def receive_heartbeat(self, msg):
+        self._check_handshaked()
+
+    def receive_default(self, msg):
+        logging.error('Received message with no handler ' + str(type(msg)))
 
     def send_message(self, message_class, *args, **kwargs):
         """Sends a message object to the partner peer"""
@@ -112,9 +127,9 @@ class BaseProtocol(Int32StringReceiver):
     def send_hanshake(self):
         """Sends a handshake message"""
 
-        logging.debug('Sending Handshake to ' + self.partner_name)
+        logging.debug('Sending Handshake to ' + self.partner_address)
 
-        self.send_message(specs.HandshakeMessage, self.factory.peer_id)
+        self.send_message(specs.HandshakeMessage, self.peer_service.peer_id)
         self.outgoing_handshaked = True
 
     def send_choke(self):
@@ -134,13 +149,17 @@ class BaseProtocol(Int32StringReceiver):
         self.choked = False
 
     def send_bitfield(self):
-        pieces = self.factory.get_sequences()
+        pieces = self.peer_service.pieces
         self.send_message(specs.PieceBitFieldMessage, pieces)
 
     def send_got_piece(self, sequence):
         self.send_message(specs.GotPieceMessage, sequence)
 
-    def check_incoming_handshake(self, msg):
+    def drop(self):
+        """Drops the connection"""
+        self.transport.loseConnection()
+
+    def _check_incoming_handshake(self, msg):
         """Checks if a received handshake message object is valid"""
 
         if self.incoming_handshaked:
@@ -152,15 +171,16 @@ class BaseProtocol(Int32StringReceiver):
             self.drop()
             return False
 
-        if not self.factory.allow_connection(msg.peer_id):
+        if not self.factory.connection_allowed(msg.peer_id):
             logging.error('Connection not allowed with ' + msg.peer_id)
             self.drop()
             return False
         return True
 
-    def drop(self):
-        """Drops the connection"""
-        self.transport.loseConnection()
+    def _check_handshaked(self):
+        if not self.handshaked:
+            logging.error('Received a message before handshake')
+            self.drop()
 
 class IncomingProtocol(BaseProtocol):
     """
@@ -170,9 +190,9 @@ class IncomingProtocol(BaseProtocol):
     def receive_handshake(self, msg):
         """Handler for a handshake message"""
 
-        logging.debug('Handshake received from ' + self.partner_name)
+        logging.debug('Handshake received from ' + self.partner_address)
 
-        if not self.check_incoming_handshake(msg):
+        if not self._check_incoming_handshake(msg):
             return
 
         logging.debug('Good handshake ' + msg.peer_id)
@@ -197,13 +217,13 @@ class OutgoingProtocol(BaseProtocol):
     def receive_handshake(self, msg):
         """Handler for a received handshake message object"""
 
-        logging.debug('Handshake received from ' + self.partner_name)
+        logging.debug('Handshake received from ' + self.partner_address)
 
-        if not self.check_incoming_handshake(msg):
+        if not self._check_incoming_handshake(msg):
             return
 
         if not self.outgoing_handshaked:
-            logging.error('Unrequested handshake from ' + self.partner_name)
+            logging.error('Unrequested handshake from ' + self.partner_address)
             self.drop()
             return
 
