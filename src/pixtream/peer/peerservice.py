@@ -99,6 +99,8 @@ class PeerService(object):
     def _data_packet_arrived(self, packet):
         self.joiner.push_packet(packet)
         self.piece_manager.got_new_piece(packet.sequence)
+        for connection in self.connection_manager.all_connections:
+            connection.send_got_piece(packet.sequence)
 
     def _data_joined(self, joiner):
         self.stream_server.send_stream(joiner.pop_stream())
