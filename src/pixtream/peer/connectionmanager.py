@@ -147,7 +147,11 @@ class ConnectionManager(object):
     def _init_factory(self, factory):
         factory.peer_service = self._peer_service
         factory.connection_allowed = self.connection_allowed
-        factory.end_connection_attempt = self._connection_attempts.remove
+        factory.end_connection_attempt = self._end_connection_attempt
 
     def _updated(self, connection):
         self.on_update.call(self)
+
+    def _end_connection_attempt(self, peer_id):
+        if peer_id in self._connection_attempts:
+            self._connection_attempts.remove(peer_id)
