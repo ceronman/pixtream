@@ -3,4 +3,5 @@ syntax: glob
 *~
 .project
 .pydevproject
+*.output
 
