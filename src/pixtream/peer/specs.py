@@ -88,6 +88,14 @@ class RequestDataPacketMessage(FixedLengthMessage):
     def valid_conditions(self):
         yield self.sequence >= 0
 
+    @classmethod
+    def create(cls, sequence):
+        assert sequence >= 0
+
+        msg = cls()
+        msg.sequence = sequence
+        return msg
+
 @Message.register
 class CancelRequestDataPacketMessage(FixedLengthMessage):
     """
