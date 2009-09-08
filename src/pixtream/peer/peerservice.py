@@ -16,6 +16,7 @@ from pixtream.peer.streamserver import TCPStreamServer
 from pixtream.peer.streamclient import TCPStreamClient
 from pixtream.peer.peerdatabase import PeerDatabase
 from pixtream.util.event import Event
+from pixtream.util.twistedrepeater import TwistedRepeater
 
 class PeerService(object):
     """
@@ -55,6 +56,10 @@ class PeerService(object):
         self.on_tracker_update = Event()
         self.on_peers_update = Event()
 
+        # FIXME: seconds hardcoded
+        self.logic_repeater = TwistedRepeater(self._peer_logic, 1)
+        self.logic_repeater.start_now()
+
     @property
     def incoming_peers(self):
         """Returns a list of the IDs of the incomming connected peers"""
@@ -83,11 +88,31 @@ class PeerService(object):
         """Contact the tracker for first time"""
         self.tracker_manager.connect_to_tracker()
 
+    def _peer_logic(self):
+        logging.info('Executing Repeater')
+        self._contact_peers(self.tracker_peers)
+        self._request_pieces()
+
+    def _request_pieces(self):
+        # FIXME: hardcoded number!!!
+        missing_pieces = self.piece_manager.most_wanted_pieces(3)
+
+        for piece in missing_pieces:
+            partner_id = self.piece_manager.best_partner_for_piece(piece)
+            if partner_id is None:
+                logging.info('No partner for {0}'.format(piece))
+                continue
+            connection = self.connection_manager.get_connection(partner_id)
+            if connection is None:
+                logging.error('No connection for {0}'.format(partner_id))
+                continue
+
+            connection.send_request_packet(piece)
+
     def _update_peers(self, sender, peer_list):
         self.tracker_peers.update_peers(peer_list)
         self.tracker_peers.remove_peer(self.peer_id)
         logging.debug('Tracker updated: ' + str(self.tracker_peers.peer_ids))
-        self._contact_peers(self.tracker_peers)
         self.on_tracker_update.call(self)
 
     def _update_connections(self, sender):
@@ -152,6 +177,9 @@ class SourcePeerService(PeerService):
 
         self._create_splitter()
         self._create_stream_client()
+
+    def _peer_logic(self):
+        pass
 
     def connect_to_source(self, host, port):
         self.stream_client.connect(host, port)
