@@ -74,7 +74,7 @@ def create_source_peer():
 def create_media_server():
     input_file = open(media_file, 'rb')
 
-    args = '-d {0} {1} -l -p {2}'.format(media_server_rate, netcat_bin,
+    args = '-u {0} {1} -l -p {2}'.format(media_server_rate, netcat_bin,
                                          media_server_port)
 
     args = args.split()
