@@ -48,6 +48,12 @@ class ConnectionList(object):
     def __iter__(self):
         return self._connections.itervalues()
 
+    def __contains__(self, partner_id):
+        return partner_id in self._connections
+
+    def __getitem__(self, partner_id):
+        return self._connections[partner_id]
+
     @property
     def ids(self):
         return self._connections.keys()
@@ -100,6 +106,15 @@ class ConnectionManager(object):
 
         factory = self._create_server_factory()
         reactor.listenTCP(port, factory)
+
+    def get_connection(self, partner_id):
+        if partner_id in self.incoming_connections:
+            return self.incoming_connections[partner_id]
+
+        if partner_id in self.outgoing_connections:
+            return self.outgoing_connections[partner_id]
+
+        return None
 
     def connect_to_peer(self, peer):
         """Establish a new connection with a given peer."""
