@@ -34,7 +34,8 @@ class BaseProtocol(Int32StringReceiver):
             specs.NotInterestedMessage: self.receive_not_interested,
             specs.HeartBeatMessage: self.receive_heartbeat,
             specs.PieceBitFieldMessage: self.receive_bitfield,
-            specs.GotPieceMessage: self.receive_got_piece
+            specs.GotPieceMessage: self.receive_got_piece,
+            specs.RequestDataPacketMessage: self.receive_request_packet
         }
 
     @property
@@ -115,6 +116,9 @@ class BaseProtocol(Int32StringReceiver):
     def receive_heartbeat(self, msg):
         self._check_handshaked()
 
+    def receive_request_packet(self, msg):
+        logging.info('Got packet request: {0}'.format(msg.sequence))
+
     def receive_default(self, msg):
         logging.error('Received message with no handler ' + str(type(msg)))
 
@@ -154,6 +158,10 @@ class BaseProtocol(Int32StringReceiver):
 
     def send_got_piece(self, sequence):
         self.send_message(specs.GotPieceMessage, sequence)
+
+    def send_request_packet(self, sequence):
+        logging.info('Requesting {0} to {1}'.format(sequence, self.partner_id))
+        self.send_message(specs.RequestDataPacketMessage, sequence)
 
     def drop(self):
         """Drops the connection"""
