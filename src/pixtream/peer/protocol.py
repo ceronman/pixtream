@@ -35,7 +35,8 @@ class BaseProtocol(Int32StringReceiver):
             specs.HeartBeatMessage: self.receive_heartbeat,
             specs.PieceBitFieldMessage: self.receive_bitfield,
             specs.GotPieceMessage: self.receive_got_piece,
-            specs.RequestDataPacketMessage: self.receive_request_packet
+            specs.RequestDataPacketMessage: self.receive_request_packet,
+            specs.DataPacketMessage: self.receive_data_packet,
         }
 
     @property
@@ -68,7 +69,7 @@ class BaseProtocol(Int32StringReceiver):
     def stringReceived(self, message):
         """Overrides method to receive a message without the prefix """
 
-        logging.debug('Received: {0} from {1}'.format(repr(message),
+        logging.debug('Received: {0} from {1}'.format(repr(message[0]),
                                                       self.partner_address))
 
         if self.handshaked and self.choked:
@@ -117,7 +118,12 @@ class BaseProtocol(Int32StringReceiver):
         self._check_handshaked()
 
     def receive_request_packet(self, msg):
-        logging.info('Got packet request: {0}'.format(msg.sequence))
+        logging.info('Got packet request: {0} from {1}'.format(msg.sequence, self.partner_id))
+        self.peer_service.respond_request(self.partner_id, msg.sequence, self)
+
+    def receive_data_packet(self, msg):
+        logging.info('Received data packet {0}'.format(msg.sequence))
+        self.peer_service.receive_packet(msg)
 
     def receive_default(self, msg):
         logging.error('Received message with no handler ' + str(type(msg)))
@@ -162,6 +168,10 @@ class BaseProtocol(Int32StringReceiver):
     def send_request_packet(self, sequence):
         logging.info('Requesting {0} to {1}'.format(sequence, self.partner_id))
         self.send_message(specs.RequestDataPacketMessage, sequence)
+
+    def send_data_packet(self, sequence, data):
+        logging.info('Sending data packet {0}'.format(sequence))
+        self.send_message(specs.DataPacketMessage, sequence, data)
 
     def drop(self):
         """Drops the connection"""
