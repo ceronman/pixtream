@@ -207,15 +207,6 @@ class PieceBitFieldMessage(VariableLengthMessage):
         yield self.first_sequence >= 0
         yield self.last_sequence >= 0
 
-        if self.first_sequence == self.last_sequence:
-            yield len(self.bitfield) == 0
-            return
-
-        yield self.last_sequence > self.first_sequence
-        size = (self.last_sequence - self.first_sequence) + 1
-        bitfield_size = math.ceil(size/8.0)
-        yield len(self.bitfield) == bitfield_size
-
     @classmethod
     def create(cls, pieces):
         assert isinstance(pieces, set)
