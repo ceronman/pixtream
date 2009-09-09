@@ -52,6 +52,14 @@ class PieceBitFieldMessageTest(unittest.TestCase):
         self.assert_(isinstance(object, PieceBitFieldMessage))
         self.assertEqual(object.pieces, pieces)
 
+    def test_bitencoding2(self):
+        pieces = set([0])
+        message = specs.PieceBitFieldMessage.create(pieces)
+        code = message.pack()
+        object = Message.parse(code)
+        self.assert_(isinstance(object, PieceBitFieldMessage))
+        self.assertEqual(object.pieces, pieces)
+
 
 if __name__ == '__main__':
     unittest.main()
