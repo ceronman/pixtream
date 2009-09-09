@@ -1,27 +1,199 @@
-PIXTREAM is a Peer-to-Peer Streaming System.
+PIXTREAM P2P Streaming System.
 
-Basic usage:
 
-Run the tracker first:
+Introduction
+==============================================================================
 
-$ bin/pixtreamtracker
+Pixtream is a P2P program similar to Bittorrent designed to be used with live
+streaming content. Pixtream takes a live stream from a source and splits it
+into several chunks that are then sent to different peers in the network. A
+peer can download and upload chunks from several other peers, the program takes
+the chunks and reconstruct them into a stream.
 
-Usage: pixtreamtracker [options]
+The objective of Pixtream is to distribute the upload bandwidth usage among all
+the peers in the network. Avoiding the bandwidth bottleneck commonly found in
+client-server streaming systems.
+
+Currently, Pixtream is in an early stage of development. Pixtream can create a
+very simple P2P network and transmit a stream over it, but a lot of features
+are missing right now. Pixtream is a work in progress.
+
+
+How it works
+==============================================================================
+
+A Pixtream system has various separated components:
+
+ - Streaming source
+ - Tracker
+ - Source peer
+ - Regular peer
+
+ The streaming source can be any streaming server, like Flumotion. Currently
+ PIXTREAM only supports simple TCP streams, in the future more streams will be
+ supported.
+
+ The Tracker is very similar to a Bittorrent tracker. It's used to bootstrap to
+ the P2P network. Peers connect to the tracker to get information about the
+ stream distributed and a list of other peers to exchange information with. The
+ Pixtream tracker is based on the HTTP protocol and uses JSON as its
+ information exchange format.
+
+ The source peer is a special type of peer that receives a media stream
+ directly from the streaming source. The source peer takes that stream and
+ splits it into chunks to be distributed among the p2p network.
+
+ A regular peer creates connections with other peers and requests chunks of
+ data from them. The chunks can be requested to the source peer or any other
+ peer. A peer takes the chunks and organize them to reconstruct the original
+ stream as received by the source peer. The original reconstructed stream is
+ streamed again by the peer so that a media player could be used to reproduce
+ the media.
+
+
+Usage
+==============================================================================
+
+To create a Pixtream P2P network you need to have at least a streaming source,
+a tracker running and a source peer.
+
+
+Streaming source
+------------------------------------------------------------------------------
+
+Pixtream currently supports simple TCP streams only. You can create a very
+simple streaming server with Netcat:
+
+$ nc -l -p 3000 < mediafile.ogg
+
+Trickle can be used to limit the bandwidth usage of Netcat and simulate a more
+realistic streaming server:
+
+$ trickle -u 30 'nc -l -p 3000 < mediafile.ogg'
+
+
+Tracker
+------------------------------------------------------------------------------
+
+The tracker program can be found in the bin directory of the Pixtream source
+distribution.
+
+Usage: tracker [options]
 
 Options:
-  -h, --help                             Show this help message and exit
-  -p PORT, --port=PORT                   Listening Port. Default is 8080
-  -i INTERVAL, --interval=INTERVAL       Interval in seconds for peers to make
-                                         requests
+  -h, --help            show this help message and exit -p PORT, --port=PORT
+  -p PORT, --port=PORT  Listening Port
+  -i INTERVAL, --interval=INTERVAL
+                        Interval in seconds for peers to make requests
 
-The run one or more peers:
+Example:
 
-$ bin/pixtreampeer http://localhost:8080
+$ tracker -p 8080 -i 30
 
-Usage: usage: pixtreampeer [options] tracker_url
+
+Source peer
+------------------------------------------------------------------------------
+
+A source peer should connect to the tracker and the streaming source. The
+source peer program can be found in the bin directory of the Pixtream source
+distribution:
+
+Usage: usage: peersource [options] tracker_url source_host source_port
 
 Options:
-  -h, --help                             Show this help message and exit
-  -i ADDRESS, --ip=ADDRESS               IP Address to use
-  -p PORT, --port=PORT                   Listening Port. Default is 20000
+  -h, --help            show this help message and exit
+  -i ADDRESS, --ip=ADDRESS
+                        IP Address to use
+  -p PORT, --port=PORT  Listening Port
+  -s PORT, --streaming-port=PORT
+                        Listening Port for the streaming output
 
+
+Example:
+
+$ peersource -p 60000 -s 30000 http://localhost:8080 localhost 30
+
+The peer would listen on port 60000 for peer communication and the
+reconstructed media would be streamed on streaming-port
+
+
+Regular peer
+------------------------------------------------------------------------------
+
+A regular peer should connect to the tracker. There should be at least one
+source peer in the network currently.
+
+Usage: usage: peer [options] tracker_url
+
+Options:
+  -h, --help            show this help message and exit
+  -i ADDRESS, --ip=ADDRESS
+                        IP Address to use
+  -p PORT, --port=PORT  Listening Port
+  -s PORT, --streaming-port=PORT
+                        Listening Port for the streaming output
+
+
+Example:
+
+$ peer -p 60001 -s 30001 http://localhost:8080
+
+
+Playing the media
+-------------------------------------------------------------------------------
+
+Each peer provides a streaming port where the reconstructed stream can be
+accessed by a media player. You can play the media with any media player with
+server support.
+
+Simple example with gstreamer:
+
+$ gst-launch-0.10 tcpclientsrc host=127.0.0.1 port=30001 ! decodebin !
+audioconvert ! alsasink
+
+
+Using the launcher script
+------------------------------------------------------------------------------
+
+The Pixtream source distribution has a launcher script used for testing
+purposes. The script can used to launch a streaming source, tracker, source
+peer and several regular peers. The script is located in
+tests/manualtests/launchpeers.py in the Pixtream source distribution.
+
+The launcher requires Netcat and Trickle
+(http://monkey.org/~marius/pages/?page=trickle)
+
+Usage: Usage: launchpeers.py [options] numpeers mediafile
+
+Options:
+  -h, --help            show this help message and exit
+  -t PORT, --tracker-port=PORT
+                        Port to use with the tracker
+  -i INTERVAL, --tracker-interval=INTERVAL
+                        Interval of the tracker checks in seconds
+  -p PORT, --start-peer-port=PORT
+                        Starting listening port for the peers
+  -s PORT, --start-streaming-port=PORT
+                        Starting listening port for streaming
+  -r RATE, --media-server-rate=RATE
+                        Media server upload rate in KB/s
+  -m PORT, --media-server-port=PORT
+                        Media server listening port
+
+Example:
+
+$ ./launchpeers.py -t 8080 -i 30 -p 60000 -s 30000 -r 50 -m 3000 10 test.ogg
+
+This will launch a Netcat streaming server on port 3000 sending information at
+50 KB/s maximum. It will launch a tracker listening on port 8080 with an
+interval of 30 seconds. It will launch a source peer listening on port 60000
+for peer communication and retransmitting the reconstructed stream on port
+30000. It will launch 10 peers listening on ports from 60001 to 60010 and
+retransmitting from 30001 to 30010.
+
+The script has some default values. Other way to call it would be:
+
+$ ./launchpeers.py 10 test.ogg
+
+The outputs of each process would be saved in a file *.output. For example the
+output for first peer would be peer0.output.
