@@ -38,8 +38,6 @@ class PeerService(object):
 
         self.peer_id = self._generate_peer_id()
         self.tracker_peers = PeerDatabase()
-        self.own_pieces = set()
-        self.pieces_by_partner = {}
 
         self.piece_manager = None
         self.connection_manager = None
@@ -57,8 +55,8 @@ class PeerService(object):
         self.on_peers_update = Event()
 
         # FIXME: seconds hardcoded
-        self.logic_repeater = TwistedRepeater(self._peer_logic, 1)
-        self.logic_repeater.start_now()
+        self.logic_repeater = TwistedRepeater(self._peer_logic, 2)
+        self.logic_repeater.start_later()
 
     @property
     def incoming_peers(self):
@@ -72,13 +70,28 @@ class PeerService(object):
 
     @property
     def pieces(self):
-        return self.piece_manager.own_pieces
+        return self.piece_manager.piece_sequences
 
     def partner_got_piece(self, partner_id, piece):
         self.piece_manager.partner_got_piece(partner_id, piece)
 
     def partner_got_pieces(self, partner_id, pieces):
         self.piece_manager.partner_got_pieces(partner_id, pieces)
+
+    def respond_request(self, partner_id, sequence, connection):
+        if self.piece_manager.piece_sent_allowed(partner_id, sequence):
+            logging.info('Sent Allowed')
+            data = self.piece_manager.get_piece_data(sequence)
+            if data is None:
+                logging.error('Getting None data in piece manager')
+                return
+            connection.send_data_packet(sequence, data)
+            self.piece_manager.piece_sent(partner_id, sequence)
+        else:
+            logging.info("Sent NOT Allowed")
+
+    def receive_packet(self, packet):
+        self._data_packet_arrived(packet)
 
     def listen(self):
         """Starts listening on the selected port"""
@@ -107,7 +120,9 @@ class PeerService(object):
                 logging.error('No connection for {0}'.format(partner_id))
                 continue
 
-            connection.send_request_packet(piece)
+            if self.piece_manager.piece_request_allowed(partner_id, piece):
+                connection.send_request_packet(piece)
+                self.piece_manager.piece_requested(partner_id, piece)
 
     def _update_peers(self, sender, peer_list):
         self.tracker_peers.update_peers(peer_list)
@@ -123,7 +138,7 @@ class PeerService(object):
 
     def _data_packet_arrived(self, packet):
         self.joiner.push_packet(packet)
-        self.piece_manager.got_new_piece(packet.sequence)
+        self.piece_manager.got_new_piece(packet.sequence, packet.data)
         for connection in self.connection_manager.all_connections:
             connection.send_got_piece(packet.sequence)
 
