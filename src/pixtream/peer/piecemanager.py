@@ -8,21 +8,46 @@ import itertools
 class PieceManager(object):
     def __init__(self):
         self.last_continuous_piece = 0
-        self.own_pieces = set()
+        self.own_pieces = {}
         self.pieces_by_partner = {}
         self.partner_by_piece = {}
+        self.pieces_sent = {}
+        self.pieces_requested = {}
 
-    def got_new_piece(self, piece):
-        self.own_pieces.add(piece)
+    @property
+    def piece_sequences(self):
+        return set(self.own_pieces.keys())
+
+    def got_new_piece(self, sequence, data):
+        self.own_pieces[sequence] = data
         self._update_last()
         logging.info('Last piece: {0}'.format(self.last_continuous_piece))
 
-    def partner_got_piece(self, partner, piece):
+    def partner_got_piece(self, partner, sequence):
         pieces = self.pieces_by_partner.setdefault(partner, set())
-        pieces.add(piece)
+        pieces.add(sequence)
 
-        partners = self.partner_by_piece.setdefault(piece, set())
+        partners = self.partner_by_piece.setdefault(sequence, set())
         partners.add(partner)
+
+    def get_piece_data(self, sequence):
+        return self.own_pieces.get(sequence, None)
+
+    def piece_sent(self, partner_id, sequence):
+        pieces = self.pieces_sent.setdefault(partner_id, set())
+        pieces.add(sequence)
+
+    def piece_requested(self, partner_id, sequence):
+        pieces = self.pieces_requested.setdefault(partner_id, set())
+        pieces.add(sequence)
+
+    def piece_sent_allowed(self, partner_id, sequence):
+        pieces = self.pieces_sent.setdefault(partner_id, set())
+        return sequence not in pieces
+
+    def piece_request_allowed(self, partner_id, sequence):
+        pieces = self.pieces_requested.setdefault(partner_id, set())
+        return sequence not in pieces
 
     def partner_got_pieces(self, partner, pieces):
         for piece in pieces:
