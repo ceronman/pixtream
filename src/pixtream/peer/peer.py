@@ -18,6 +18,7 @@ def run():
     service.connect_to_tracker()
 
     print 'Running peer on port {0} with tracker: {1}'.format(port, tracker)
+    print 'Streaming server listening on port: {0}'.format(streaming_port)
     print 'Press CTRL-C to quit'
     reactor.run()
 
