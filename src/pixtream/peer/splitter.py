@@ -7,6 +7,8 @@ from collections import deque
 from pixtream.util.event import Event
 from pixtream.peer.specs import DataPacketMessage
 
+__all__ = ['Splitter']
+
 class Splitter(object):
 
     def __init__(self, packet_size):

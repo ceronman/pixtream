@@ -9,6 +9,8 @@ from twisted.internet import reactor
 from pixtream.peer.peerservice import PeerService, SourcePeerService
 from pixtream.peer import scriptutils
 
+__all__ = ['run', 'run_source']
+
 def run():
     """Runs a peer program."""
     scriptutils.setup_logger()

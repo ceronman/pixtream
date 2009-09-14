@@ -18,6 +18,8 @@ from pixtream.peer.peerdatabase import PeerDatabase
 from pixtream.util.event import Event
 from pixtream.util.twistedrepeater import TwistedRepeater
 
+__all__ = ['PeerService', 'SourcePeerService']
+
 class PeerService(object):
     """
     Controls every aspect of the peer application.

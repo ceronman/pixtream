@@ -9,6 +9,8 @@ from twisted.protocols.basic import Int32StringReceiver
 from pixtream.peer.messages import Message, MessageException
 from pixtream.peer import specs
 
+__all__ = ['IncomingProtocol', 'OutgoingProtocol']
+
 class BaseProtocol(Int32StringReceiver):
     """
     Base class for the protocols of Pixtream

@@ -5,6 +5,8 @@ Takes a joined streaming data and serves it in an outgoing port
 from twisted.internet.protocol import Protocol, ServerFactory
 from twisted.internet import reactor
 
+__all__ = ['TCPStreamServer']
+
 class TCPStreamServerProtocol(Protocol):
 
     def connectionMade(self):

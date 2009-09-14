@@ -6,6 +6,8 @@ from itertools import takewhile, count
 
 from pixtream.util.event import Event
 
+__all__ = ['Joiner']
+
 class Joiner(object):
 
     def __init__(self):

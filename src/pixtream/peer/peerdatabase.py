@@ -4,6 +4,8 @@ Defines a Peer Class and a collections of peers indexed by ID.
 
 import collections
 
+__all__ = ['Peer', 'PeerDatabase']
+
 class Peer(object):
     """
     Defines a peer as returned from the tracker.

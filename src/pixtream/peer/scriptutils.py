@@ -6,6 +6,9 @@ from optparse import OptionParser
 import logging
 import sys
 
+__all__ = ['parse_options', 'parse_source_options', 'setup_logger']
+
+
 def _creat_basic_options(parser):
     parser.add_option('-i', '--ip', dest='ip',
                       type='string',

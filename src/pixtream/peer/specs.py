@@ -7,6 +7,20 @@ import math
 from pixtream.peer.messages import FixedLengthMessage, VariableLengthMessage
 from pixtream.peer.messages import Message, Field, Payload
 
+__all__ = ['CancelRequestDataPacketMessage',
+           'ChokeMessage',
+           'DataPacketMessage',
+           'GotPieceMessage',
+           'HandshakeMessage',
+           'HeartBeatMessage',
+           'InterestedMessage',
+           'NotInterestedMessage',
+           'PieceBitFieldMessage',
+           'RequestDataPacketMessage',
+           'RequestPieceBitFieldMessage',
+           'UnChokeMessage']
+
+
 @Message.register
 class HandshakeMessage(FixedLengthMessage):
     """

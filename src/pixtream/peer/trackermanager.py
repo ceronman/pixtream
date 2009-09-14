@@ -16,6 +16,8 @@ from pixtream.util.twistedrepeater import TwistedRepeater
 from pixtream.util.event import Event
 from pixtream.peer.peerdatabase import Peer
 
+__all__ = ['TrackerManager', 'TrackerManagerError']
+
 class TrackerManagerError(Exception):
     """
     Errors produced by the TrackerManager.

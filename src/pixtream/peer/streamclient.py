@@ -5,6 +5,8 @@ Clients for ordinary streaming systems
 from twisted.internet.protocol import Protocol, ClientFactory
 from twisted.internet import reactor
 
+__all__ = ['TCPStreamClient']
+
 class TCPStreamClientProtocol(Protocol):
 
     def dataReceived(self, data):

@@ -5,6 +5,8 @@ Piece manager
 import logging
 import itertools
 
+__all__ = ['PieceManager']
+
 class PieceManager(object):
     def __init__(self):
         self.last_continuous_piece = 0

@@ -4,6 +4,9 @@ Defines base classes for messages of the Pixtream Protocol.
 
 import struct
 
+__all__ = ['Field', 'FixedLengthMessage', 'Message', 'MessageException',
+           'Payload', 'VariableLengthMessage']
+
 class Field(object):
     """
     Simple for to define Fields in Message specs

@@ -11,6 +11,8 @@ from twisted.internet import reactor
 from pixtream.util.event import Event
 from pixtream.peer.protocol import IncomingProtocol, OutgoingProtocol
 
+__all__ = ['ConnectionManager']
+
 class ConnectionList(object):
 
     def __init__(self, protocol_class):
