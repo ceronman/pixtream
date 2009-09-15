@@ -121,7 +121,7 @@ class BaseProtocol(Int32StringReceiver):
 
     def receive_request_packet(self, msg):
         logging.info('Got packet request: {0} from {1}'.format(msg.sequence, self.partner_id))
-        self.peer_service.respond_request(self.partner_id, msg.sequence, self)
+        self.peer_service.receive_request(self.partner_id, msg.sequence)
 
     def receive_data_packet(self, msg):
         logging.info('Received data packet {0}'.format(msg.sequence))
