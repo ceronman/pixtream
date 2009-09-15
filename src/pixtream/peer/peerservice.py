@@ -53,22 +53,9 @@ class PeerService(object):
         self._create_joiner()
         self._create_stream_server(streaming_port)
 
-        self.on_tracker_update = Event()
-        self.on_peers_update = Event()
-
         # FIXME: seconds hardcoded
         self.logic_repeater = TwistedRepeater(self._peer_logic, 2)
         self.logic_repeater.start_later()
-
-    @property
-    def incoming_peers(self):
-        """Returns a list of the IDs of the incomming connected peers"""
-        return self.connection_manager.incoming_connections.ids
-
-    @property
-    def outgoing_peers(self):
-        """Returns a list of the IDs of the incomming connected peers"""
-        return self.connection_manager.outgoing_connections.ids
 
     @property
     def pieces(self):
@@ -80,12 +67,16 @@ class PeerService(object):
     def partner_got_pieces(self, partner_id, pieces):
         self.piece_manager.partner_got_pieces(partner_id, pieces)
 
-    def respond_request(self, partner_id, sequence, connection):
+    def receive_request(self, partner_id, sequence):
         if self.piece_manager.piece_sent_allowed(partner_id, sequence):
             logging.info('Sent Allowed')
             data = self.piece_manager.get_piece_data(sequence)
             if data is None:
                 logging.error('Getting None data in piece manager')
+                return
+            connection = self.connection_manager.get_connection(partner_id)
+            if connection == None:
+                logging.error('Getting None in connection manager')
                 return
             connection.send_data_packet(sequence, data)
             self.piece_manager.piece_sent(partner_id, sequence)
@@ -93,22 +84,15 @@ class PeerService(object):
             logging.info("Sent NOT Allowed")
 
     def receive_packet(self, packet):
-        self._data_packet_arrived(packet)
-
-    def listen(self):
-        """Starts listening on the selected port"""
-        self.connection_manager.listen(self.port)
-
-    def connect_to_tracker(self):
-        """Contact the tracker for first time"""
-        self.tracker_manager.connect_to_tracker()
+        self.joiner.push_packet(packet)
+        self.piece_manager.got_new_piece(packet.sequence, packet.data)
+        for connection in self.connection_manager.all_connections:
+            connection.send_got_piece(packet.sequence)
 
     def _peer_logic(self):
         logging.info('Executing Repeater')
         self._contact_peers(self.tracker_peers)
-        self._request_pieces()
 
-    def _request_pieces(self):
         # FIXME: hardcoded number!!!
         missing_pieces = self.piece_manager.most_wanted_pieces(3)
 
@@ -137,12 +121,6 @@ class PeerService(object):
 
     def _contact_peers(self, peers):
         self.connection_manager.connect_to_peers(peers)
-
-    def _data_packet_arrived(self, packet):
-        self.joiner.push_packet(packet)
-        self.piece_manager.got_new_piece(packet.sequence, packet.data)
-        for connection in self.connection_manager.all_connections:
-            connection.send_got_piece(packet.sequence)
 
     def _data_joined(self, joiner):
         self.stream_server.send_stream(joiner.pop_stream())
