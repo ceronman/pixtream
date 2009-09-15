@@ -2,8 +2,6 @@
 Message specs of the Pixtream protocol
 """
 
-import math
-
 from pixtream.peer.messages import FixedLengthMessage, VariableLengthMessage
 from pixtream.peer.messages import Message, Field, Payload
 
