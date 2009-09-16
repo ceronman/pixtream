@@ -7,6 +7,7 @@ Use the run() method to launch the program.
 from twisted.internet import reactor
 
 from pixtream.peer.peerservice import PeerService, SourcePeerService
+from pixtream.peer.peerapplication import PeerApplication
 from pixtream.peer import scriptutils
 
 __all__ = ['run', 'run_source']
@@ -16,8 +17,10 @@ def run():
     scriptutils.setup_logger()
     ip, port, streaming_port, tracker = scriptutils.parse_options()
     service = PeerService(ip, port, tracker, int(streaming_port))
-    service.listen()
-    service.connect_to_tracker()
+    app = PeerApplication()
+    app.set_service(service)
+    app.listen()
+    app.connect_to_tracker()
 
     print 'Running peer on port {0} with tracker: {1}'.format(port, tracker)
     print 'Streaming server listening on port: {0}'.format(streaming_port)
@@ -33,9 +36,11 @@ def run_source():
      s_host, s_port) = scriptutils.parse_source_options()
 
     service = SourcePeerService(ip, port, tracker, int(streaming_port))
-    service.listen()
-    service.connect_to_tracker()
-    service.connect_to_source(s_host, int(s_port))
+    app = PeerApplication()
+    app.set_service(service)
+    app.listen()
+    app.connect_to_tracker()
+    app.connect_to_source(s_host, int(s_port))
 
     print 'Running peer on port {0} with tracker: {1}'.format(port, tracker)
     print 'Streaming server listening on port: {0}'.format(streaming_port)

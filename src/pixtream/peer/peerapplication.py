@@ -4,7 +4,9 @@ A peer application
 
 from pixtream.util.event import Event
 
-class PeerAplication(object):
+__all__ = ['PeerApplication']
+
+class PeerApplication(object):
     def __init__(self):
         self._peer = None
 
@@ -21,13 +23,16 @@ class PeerAplication(object):
         """Returns a list of the IDs of the incomming connected peers"""
         return self._peer.connection_manager.outgoing_connections.ids
 
-    def set_peer_service(self, peer_service):
+    def set_service(self, peer_service):
         self._peer = peer_service
 
     def listen(self):
         """Starts listening on the selected port"""
-        self._peer.connection_manager.listen(self.port)
+        self._peer.connection_manager.listen(self._peer.port)
 
     def connect_to_tracker(self):
         """Contact the tracker for first time"""
         self._peer.tracker_manager.connect_to_tracker()
+
+    def connect_to_source(self, host, port):
+        self._peer.stream_client.connect(host, port)

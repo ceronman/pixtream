@@ -114,7 +114,6 @@ class PeerService(object):
         self.tracker_peers.update_peers(peer_list)
         self.tracker_peers.remove_peer(self.peer_id)
         logging.debug('Tracker updated: ' + str(self.tracker_peers.peer_ids))
-        self.on_tracker_update.call(self)
 
     def _contact_peers(self, peers):
         self.connection_manager.connect_to_peers(peers)
@@ -172,12 +171,9 @@ class SourcePeerService(PeerService):
     def _peer_logic(self):
         pass
 
-    def connect_to_source(self, host, port):
-        self.stream_client.connect(host, port)
-
     def _packet_created(self, splitter):
         packet = splitter.pop_packet()
-        self._data_packet_arrived(packet)
+        self.receive_packet(packet)
         logging.debug('Packet created. Seq: {0}'.format(packet.sequence))
 
     def _input_stream_end(self, splitter):
