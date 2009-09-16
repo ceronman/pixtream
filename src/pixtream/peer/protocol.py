@@ -109,7 +109,7 @@ class BaseProtocol(Int32StringReceiver):
 
     def receive_bitfield(self, msg):
         self._check_handshaked()
-        self.peer_service.partner_got_pieces(self.partner_id, msg.pieces)
+        self.peer_service.partner_bitset(self.partner_id, msg.pieces)
 
     def receive_got_piece(self, msg):
         self._check_handshaked()
