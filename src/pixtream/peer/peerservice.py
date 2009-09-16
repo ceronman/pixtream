@@ -64,7 +64,7 @@ class PeerService(object):
     def partner_got_piece(self, partner_id, piece):
         self.piece_manager.partner_got_piece(partner_id, piece)
 
-    def partner_got_pieces(self, partner_id, pieces):
+    def partner_bitset(self, partner_id, pieces):
         self.piece_manager.partner_got_pieces(partner_id, pieces)
 
     def receive_request(self, partner_id, sequence):
@@ -116,9 +116,6 @@ class PeerService(object):
         logging.debug('Tracker updated: ' + str(self.tracker_peers.peer_ids))
         self.on_tracker_update.call(self)
 
-    def _update_connections(self, sender):
-        self.on_peers_update.call(self)
-
     def _contact_peers(self, peers):
         self.connection_manager.connect_to_peers(peers)
 
@@ -130,7 +127,6 @@ class PeerService(object):
 
     def _create_connection_manager(self):
         self.connection_manager = ConnectionManager(self)
-        self.connection_manager.on_update.add_handler(self._update_connections)
 
     def _create_tracker_manager(self, tracker_url):
         self.tracker_manager = TrackerManager(self.peer_id,
