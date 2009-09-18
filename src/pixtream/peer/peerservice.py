@@ -15,7 +15,6 @@ from pixtream.peer.splitter import Splitter
 from pixtream.peer.streamserver import TCPStreamServer
 from pixtream.peer.streamclient import TCPStreamClient
 from pixtream.peer.peerdatabase import PeerDatabase
-from pixtream.util.event import Event
 from pixtream.util.twistedrepeater import TwistedRepeater
 
 __all__ = ['PeerService', 'SourcePeerService']
