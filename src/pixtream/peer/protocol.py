@@ -114,7 +114,8 @@ class BaseProtocol(Int32StringReceiver):
     def receive_got_piece(self, msg):
         self._check_handshaked()
         self.peer_service.partner_got_piece(self.partner_id, msg.sequence)
-        logging.debug('Got piece {0}'.format(msg.sequence))
+        logging.debug('Partner {0} got piece {1}'.format(self.partner_id,
+                                                         msg.sequence))
 
     def receive_heartbeat(self, msg):
         self._check_handshaked()
