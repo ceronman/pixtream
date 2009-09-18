@@ -67,30 +67,21 @@ class PeerService(object):
         self.piece_manager.partner_got_pieces(partner_id, pieces)
 
     def receive_request(self, partner_id, sequence):
-        if self.piece_manager.piece_sent_allowed(partner_id, sequence):
-            logging.info('Sent Allowed')
-            data = self.piece_manager.get_piece_data(sequence)
-            if data is None:
-                logging.error('Getting None data in piece manager')
-                return
-            connection = self.connection_manager.get_connection(partner_id)
-            if connection == None:
-                logging.error('Getting None in connection manager')
-                return
-            connection.send_data_packet(sequence, data)
-            self.piece_manager.piece_sent(partner_id, sequence)
-        else:
-            logging.info("Sent NOT Allowed")
+        self.piece_manager.partner_requested_piece(partner_id, sequence)
 
     def receive_packet(self, packet):
         self.joiner.push_packet(packet)
-        self.piece_manager.got_new_piece(packet.sequence, packet.data)
+        self.piece_manager.add_new_piece(packet.sequence, packet.data)
         for connection in self.connection_manager.all_connections:
             connection.send_got_piece(packet.sequence)
 
     def _peer_logic(self):
-        logging.info('Executing Repeater')
+        logging.info('Executing Peer Logic')
         self._contact_peers(self.tracker_peers)
+        self._request_needed_pieces()
+        self._send_requested_pieces()
+
+    def _request_needed_pieces(self):
 
         # FIXME: hardcoded number!!!
         missing_pieces = self.piece_manager.most_wanted_pieces(3)
@@ -105,9 +96,23 @@ class PeerService(object):
                 logging.error('No connection for {0}'.format(partner_id))
                 continue
 
-            if self.piece_manager.piece_request_allowed(partner_id, piece):
+            if self.piece_manager.can_request_piece(partner_id, piece):
                 connection.send_request_packet(piece)
-                self.piece_manager.piece_requested(partner_id, piece)
+                self.piece_manager.mark_piece_as_requested(partner_id, piece)
+
+    def _send_requested_pieces(self):
+        for partner_id, sequence in self.piece_manager.get_pieces_to_send():
+            data = self.piece_manager.get_piece_data(sequence)
+            if data is None:
+                logging.error('Dont have piece {0}'.format(sequence))
+                return
+            connection = self.connection_manager.get_connection(partner_id)
+            if connection == None:
+                logging.error('Dont have connection {0}'.format(partner_id))
+                return
+            connection.send_data_packet(sequence, data)
+            self.piece_manager.mark_piece_as_sent(partner_id, sequence)
+            logging.info('Sending piece {0} to {1}'.format(sequence, partner_id))
 
     def _update_peers(self, sender, peer_list):
         self.tracker_peers.update_peers(peer_list)
@@ -168,7 +173,7 @@ class SourcePeerService(PeerService):
         self._create_stream_client()
 
     def _peer_logic(self):
-        pass
+        self._send_requested_pieces()
 
     def _packet_created(self, splitter):
         packet = splitter.pop_packet()
