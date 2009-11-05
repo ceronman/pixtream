@@ -24,12 +24,12 @@ class TrackerManagerError(Exception):
     """
     pass
 
-# TODO: remove PeerService dependency
 class TrackerManager(object):
     """
     Manages the connection with the tracker
     """
 
+    #TODO: Eliminate tracker_url parameter
     def __init__(self, peer_id, peer_ip, peer_port, tracker_url):
         """
         Initializes the manager.
@@ -45,6 +45,7 @@ class TrackerManager(object):
         self.peer_list = []
         self.on_updated = Event()
 
+    # TODO: put url here
     def connect_to_tracker(self):
         """Starts connection with the tracker."""
 
@@ -67,6 +68,7 @@ class TrackerManager(object):
 
         return urlparse.urlunsplit(parts)
 
+    # TODO: Rename to announce
     def _on_tracker_contact(self, content):
         try:
             logging.debug('Recieved tracker response')
@@ -88,11 +90,13 @@ class TrackerManager(object):
         except Exception as e:
             self._on_tracker_failure(str(e))
 
+    # TODO: don't stop the reactor on this.
     def _on_tracker_contact_error(self, error):
         logging.error('Unable to contact the tracker: ' + str(error.value))
         if not self._first_contact:
             reactor.stop()
 
+    # TODO: Create a on_error event for this cases
     def _on_tracker_failure(self, error):
         logging.error('Tracker failure: ' + error)
 
