@@ -10,7 +10,7 @@ from twisted.web.client import HTTPPageDownloader, HTTPClientFactory
 
 from pixtream.util.event import Event
 
-__all__ = ['TCPStreamClient']
+__all__ = ['TCPStreamClient', 'HTTPStreamClient']
 
 class StreamClient(object):
 
@@ -45,7 +45,7 @@ class TCPStreamClient(StreamClient):
         factory = self._create_factory()
         reactor.connectTCP(host, port, factory)
 
-class HTTPStreamDownloader(HTTPClientFactory):
+class _HTTPStreamDownloader(HTTPClientFactory):
     protocol = HTTPPageDownloader
 
     def __init__(self, url):
@@ -73,7 +73,7 @@ class HTTPStreamClient(StreamClient):
         parts = urlparse.urlsplit(url)
         port = 80 if parts.port is None else parts.port
         host = parts.hostname
-        factory = HTTPStreamDownloader(url)
+        factory = _HTTPStreamDownloader(url)
         factory.on_page_part = self.on_stream_received
         factory.on_page_end = self.on_stream_end
         reactor.connectTCP(host, port, factory)
