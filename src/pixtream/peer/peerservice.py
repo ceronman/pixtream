@@ -13,7 +13,7 @@ from pixtream.peer.connectionmanager import ConnectionManager
 from pixtream.peer.joiner import Joiner
 from pixtream.peer.splitter import Splitter
 from pixtream.peer.streamserver import TCPStreamServer
-from pixtream.peer.streamclient import TCPStreamClient
+from pixtream.peer.streamclient import TCPStreamClient, HTTPStreamClient
 from pixtream.peer.peerdatabase import PeerDatabase
 from pixtream.util.twistedrepeater import TwistedRepeater
 
@@ -189,4 +189,13 @@ class SourcePeerService(PeerService):
         self.splitter.on_stream_end.add_handler(self._input_stream_end)
 
     def _create_stream_client(self):
-        self.stream_client = TCPStreamClient(self.splitter)
+#        self.stream_client = TCPStreamClient(self.splitter)
+        self.stream_client = HTTPStreamClient()
+        self.stream_client.on_stream_received.add_handler(self._stream_received)
+        self.stream_client.on_stream_end.add_handler(self._stream_end)
+
+    def _stream_received(self, data):
+        self.splitter.push_stream(data)
+
+    def _stream_end(self):
+        self.splitter.end_stream()

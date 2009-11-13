@@ -36,3 +36,6 @@ class PeerApplication(object):
 
     def connect_to_source(self, host, port):
         self._peer.stream_client.connect(host, port)
+
+    def connect_to_url(self, url):
+        self._peer.stream_client.connect(url)
