@@ -39,3 +39,6 @@ class PeerApplication(object):
 
     def connect_to_url(self, url):
         self._peer.stream_client.connect(url)
+
+    def connect_to_file(self, filename):
+        self._peer.stream_client.open_file(filename)

@@ -41,7 +41,8 @@ def run_source():
     app.listen()
     app.connect_to_tracker()
 #    app.connect_to_source(s_host, int(s_port))
-    app.connect_to_url('http://localhost:8080')
+#    app.connect_to_url('http://localhost:8080')
+    app.connect_to_file('/home/ceronman/workspace/pixtream/tests/manualtests/test.ogg')
 
     print 'Running peer on port {0} with tracker: {1}'.format(port, tracker)
     print 'Streaming server listening on port: {0}'.format(streaming_port)
