@@ -2,7 +2,10 @@
 A peer application
 """
 
+from pixtream.peer.streamclient import TCPStreamClient, HTTPStreamClient
+from pixtream.peer.streamclient import FileStreamClient
 from pixtream.util.event import Event
+
 
 __all__ = ['PeerApplication']
 
@@ -34,11 +37,17 @@ class PeerApplication(object):
         """Contact the tracker for first time"""
         self._peer.tracker_manager.connect_to_tracker()
 
-    def connect_to_source(self, host, port):
+    def connect_to_tcp_source(self, host, port):
+        client = TCPStreamClient()
+        self._peer.attach_stream_client(client)
         self._peer.stream_client.connect(host, port)
 
-    def connect_to_url(self, url):
+    def connect_to_http_source(self, url):
+        client = HTTPStreamClient()
+        self._peer.attach_stream_client(client)
         self._peer.stream_client.connect(url)
 
-    def connect_to_file(self, filename):
+    def connect_to_file_source(self, filename):
+        client = FileStreamClient()
+        self._peer.attach_stream_client(client)
         self._peer.stream_client.open_file(filename)
