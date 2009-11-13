@@ -2,8 +2,31 @@
 A twisted downloader
 """
 from twisted.web import client
+from twisted.web.client import HTTPPageDownloader, HTTPClientFactory
+from twisted.internet import defer
 
 output_file = open('fileout.out', 'wb')
+
+class HttpStreamClient(HTTPClientFactory):
+    protocol = HTTPPageDownloader
+
+    def __init__(self, url):
+        HTTPClientFactory.__init__(self, url)
+        self.deferred = defer.Deferred()
+        self.length = 0
+        self.waiting = 1
+
+    def pageStart(self, partialContent):
+        print 'starting'
+        self.waiting = 0
+
+    def pagePart(self, data):
+        self.length += len(data)
+        print 'part', self.length
+
+    def pageEnd(self):
+        print 'end'
+        self.deferred.callback(None)
 
 class HTTPProgressDownloader(client.HTTPDownloader):
 
@@ -19,6 +42,7 @@ class HTTPProgressDownloader(client.HTTPDownloader):
         return client.HTTPDownloader.gotHeaders(self, headers)
 
     def pagePart(self, data):
+        print 'getting part'
         if self.status == '200':
             self.currentLength += len(data)
             output_file.write(data)
@@ -28,12 +52,17 @@ class HTTPProgressDownloader(client.HTTPDownloader):
             else:
                 percent = '%dK' % (self.currentLength/1000)
             print "Progress: " + percent
-        return client.HTTPDownloader.pagePart(self, data)
+
+    def pageEnd(self):
+        print 'End'
+
+    def openFile(self, partialContent):
+        pass
 
 def downloadWithProgress(url, file, contextFactory=None, *args, **kwargs):
 
     scheme, host, port, path = client._parse(url)
-    factory = HTTPProgressDownloader(url, file, *args, **kwargs)
+    factory = HTTPProgressDownloader(url, None, *args, **kwargs)
 
     if scheme == 'https':
         from twisted.internet import ssl
@@ -45,6 +74,11 @@ def downloadWithProgress(url, file, contextFactory=None, *args, **kwargs):
         reactor.connectTCP(host, port, factory)
     return factory.deferred
 
+def downloadWithProgress2(url):
+    factory = client._makeGetterFactory(url,
+                                        lambda *args: HttpStreamClient(url))
+
+    return factory.deferred
 
 
 if __name__ == "__main__":
@@ -62,7 +96,11 @@ if __name__ == "__main__":
 
     url, outputFile = sys.argv[1:]
 
-    downloadWithProgress(url, outputFile).addCallback(
+#    downloadWithProgress(url, outputFile).addCallback(
+#        downloadComplete).addErrback(
+#        downloadError)
+
+    downloadWithProgress2(url).addCallback(
         downloadComplete).addErrback(
         downloadError)
 
