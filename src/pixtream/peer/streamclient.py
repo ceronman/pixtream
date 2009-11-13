@@ -9,6 +9,7 @@ from twisted.internet import reactor, defer
 from twisted.web.client import HTTPPageDownloader, HTTPClientFactory
 
 from pixtream.util.event import Event
+from pixtream.util.twistedrepeater import TwistedRepeater
 
 __all__ = ['TCPStreamClient', 'HTTPStreamClient']
 
@@ -77,3 +78,38 @@ class HTTPStreamClient(StreamClient):
         factory.on_page_part = self.on_stream_received
         factory.on_page_end = self.on_stream_end
         reactor.connectTCP(host, port, factory)
+
+class FileStreamClient(StreamClient):
+
+    # TODO change this to a config file
+    BUFFER = 1000000
+    INTERVAL = 1
+
+    def __init__(self):
+        super(FileStreamClient, self).__init__()
+        self.stream  = None
+        self.reader = None
+
+    def open_file(self, filename):
+        self.stream = open(filename, 'rb')
+        self.reader = TwistedRepeater(self._read_file, self.INTERVAL)
+        self.reader.start_later()
+
+    def _stop_reader(self):
+        if self.reader is not None:
+            self.reader.stop()
+
+    def _read_file(self):
+        if not self.stream:
+            self._stop_reader()
+            return
+
+        data = self.stream.read(self.BUFFER)
+
+        if len(data) > 0:
+            self.on_stream_received.call(data)
+
+        else:
+            self.on_stream_end.call()
+            self.stream.close()
+            self._stop_reader()
