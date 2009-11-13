@@ -9,6 +9,7 @@ from pixtream.peer.specs import DataPacketMessage
 
 __all__ = ['Splitter']
 
+# TODO: Use fixed length buffer
 class Splitter(object):
 
     def __init__(self, packet_size):
@@ -23,7 +24,7 @@ class Splitter(object):
     def push_stream(self, data):
         self._buffer = self._buffer + data
 
-        if len(self._buffer) >= self.packet_size:
+        while len(self._buffer) >= self.packet_size:
             packet_data = self._buffer[:self.packet_size]
             self._buffer = self._buffer[self.packet_size:]
             self._create_packet(packet_data)
