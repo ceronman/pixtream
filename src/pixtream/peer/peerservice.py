@@ -170,7 +170,6 @@ class SourcePeerService(PeerService):
         self.stream_client  = None
 
         self._create_splitter()
-        self._create_stream_client()
 
     def _peer_logic(self):
         self._send_requested_pieces()
@@ -188,15 +187,13 @@ class SourcePeerService(PeerService):
         self.splitter.on_new_packet.add_handler(self._packet_created)
         self.splitter.on_stream_end.add_handler(self._input_stream_end)
 
-    def _create_stream_client(self):
-        self.stream_client = TCPStreamClient()
-        self.stream_client = HTTPStreamClient()
-        self.stream_client = FileStreamClient()
-        self.stream_client.on_stream_received.add_handler(self._stream_received)
-        self.stream_client.on_stream_end.add_handler(self._stream_end)
-
     def _stream_received(self, data):
         self.splitter.push_stream(data)
 
     def _stream_end(self):
         self.splitter.end_stream()
+
+    def attach_stream_client(self, client):
+        self.stream_client = client
+        client.on_stream_received.add_handler(self._stream_received)
+        client.on_stream_end.add_handler(self._stream_end)
