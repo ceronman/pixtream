@@ -64,7 +64,7 @@ def create_peer(consecutive):
 def create_source_peer():
     port = start_peer_port
     streaming_port = start_streaming_port
-    args = '--port={0} --streaming-port={1} http://127.0.0.1:{2} {3} {4}'
+    args = '--port={0} --streaming-port={1} http://127.0.0.1:{2} tcp {3}:{4}'
     args = args.format(port, streaming_port, tracker_port, '127.0.0.1',
                        media_server_port)
     args = args.split()

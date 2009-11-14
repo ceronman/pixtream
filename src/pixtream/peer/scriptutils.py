@@ -40,7 +40,13 @@ def parse_options():
 
 def parse_source_options():
     parser = OptionParser()
-    parser.usage = "usage: %prog [options] tracker_url source_host source_port"
+    parser.usage = "usage: %prog [options] tracker_url source_type source\n" \
+                   "Source Types: http, file, tcp\n" \
+                   "Examples:\n" \
+                   "$ %prog http://tracker.com http http://source.com:8080\n" \
+                   "$ %prog http://tracker.com file /var/song.mp3\n" \
+                   "$ %prog http://tracker.com tcp 192.168.1.10:30000"
+
     _creat_basic_options(parser)
 
     options, args = parser.parse_args()
@@ -51,8 +57,13 @@ def parse_source_options():
     if len(args) != 3:
         parser.error('Wrong number of arguments')
 
+    tracker_url, source_type, source = args
+
+    if source_type not in ('http', 'file', 'tcp'):
+        parser.error('Invalid source type')
+
     return (options.ip, options.port, options.streaming_port,
-            args[0], args[1], args[2])
+            tracker_url, source_type, source)
 
 def setup_logger():
     # TODO: use configuration option for file logging

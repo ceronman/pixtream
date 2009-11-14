@@ -33,16 +33,21 @@ def run_source():
     scriptutils.setup_logger()
     (ip, port, streaming_port,
      tracker,
-     s_host, s_port) = scriptutils.parse_source_options()
+     source_type, source) = scriptutils.parse_source_options()
 
     service = SourcePeerService(ip, port, tracker, int(streaming_port))
     app = PeerApplication()
     app.set_service(service)
-    app.listen()
-    app.connect_to_tracker()
-#    app.connect_to_source(s_host, int(s_port))
-#    app.connect_to_url('http://localhost:8080')
-    app.connect_to_file('/home/ceronman/workspace/pixtream/tests/manualtests/test.ogg')
+    app.listen() # TODO: listen(port)
+    app.connect_to_tracker() # TODO: connect_to_tracker(tracker)
+
+    if source_type == 'http':
+        app.connect_to_http_source(source)
+    if source_type == 'tcp':
+        host, port = source.split(':')
+        app.connect_to_tcp_source(host, int(port))
+    if source_type == 'file':
+        app.connect_to_file_source(source)
 
     print 'Running peer on port {0} with tracker: {1}'.format(port, tracker)
     print 'Streaming server listening on port: {0}'.format(streaming_port)
