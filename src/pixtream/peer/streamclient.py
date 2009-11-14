@@ -20,7 +20,7 @@ class StreamClient(object):
         self.on_stream_end = Event()
 
     def _data_received(self, data):
-        self.on_data_received.call(data)
+        self.on_stream_received.call(data)
 
     def _connection_lost(self):
         self.on_stream_end.call()
@@ -30,10 +30,10 @@ class TCPStreamClient(StreamClient):
     class TCPStreamClientProtocol(Protocol):
 
         def dataReceived(self, data):
-            self.factory._data_received(data)
+            self.factory.data_received(data)
 
         def connectionLost(self, reason):
-            self.factory._connection_lost()
+            self.factory.connection_lost()
 
     def _create_factory(self):
         factory = ClientFactory()
