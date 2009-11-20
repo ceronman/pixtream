@@ -10,7 +10,7 @@ from twisted.web2.server import Site
 from twisted.internet.protocol import Protocol, ServerFactory
 from twisted.internet import reactor
 
-__all__ = ['TCPStreamServer']
+__all__ = ['TCPStreamServer', 'HTTPStreamServer']
 
 class StreamServer(object):
     def __init__(self):
