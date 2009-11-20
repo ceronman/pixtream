@@ -10,7 +10,7 @@ from twisted.web2.server import Site
 from twisted.internet.protocol import Protocol, ServerFactory
 from twisted.internet import reactor
 
-__all__ = ['TCPStreamServer', 'HTTPStreamServer']
+__all__ = ['TCPStreamServer', 'HTTPStreamServer', 'FileStreamServer']
 
 class StreamServer(object):
     def __init__(self):
@@ -99,4 +99,21 @@ class HTTPStreamServer(StreamServer):
 
     def _append_producer(self, producer):
         self._producers.append(producer)
+
+class FileStreamServer(StreamServer):
+
+    def __init__(self, filename):
+        super(FileStreamServer, self).__init__()
+        self._filename = filename
+        self._file = None
+
+    def send_stream(self, data):
+        if self._file:
+            self._file.write(data)
+
+    def start(self):
+        self._file = open(self._filename, 'wb')
+
+    def stop(self):
+        self._file.close()
 

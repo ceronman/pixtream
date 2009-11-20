@@ -5,6 +5,7 @@ A peer application
 from pixtream.peer.streamclient import TCPStreamClient, HTTPStreamClient
 from pixtream.peer.streamclient import FileStreamClient
 from pixtream.peer.streamserver import TCPStreamServer, HTTPStreamServer
+from pixtream.peer.streamserver import FileStreamServer
 from pixtream.util.event import Event
 
 
@@ -63,5 +64,7 @@ class PeerApplication(object):
         self._peer.stream_server = server
         server.start()
 
-    def start_file_server(self, file):
-        pass
+    def start_file_server(self, filename):
+        server = FileStreamServer(filename)
+        self._peer.stream_server = server
+        server.start()
