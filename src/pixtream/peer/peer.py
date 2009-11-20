@@ -16,9 +16,10 @@ def run():
     """Runs a peer program."""
     scriptutils.setup_logger()
     ip, port, streaming_port, tracker = scriptutils.parse_options()
-    service = PeerService(ip, port, tracker, int(streaming_port))
+    service = PeerService(ip, port, tracker)
     app = PeerApplication()
     app.set_service(service)
+    app.start_http_server(streaming_port)
     app.listen()
     app.connect_to_tracker()
 
@@ -35,9 +36,10 @@ def run_source():
      tracker,
      source_type, source) = scriptutils.parse_source_options()
 
-    service = SourcePeerService(ip, port, tracker, int(streaming_port))
+    service = SourcePeerService(ip, port, tracker)
     app = PeerApplication()
     app.set_service(service)
+    app.start_http_server(streaming_port)
     app.listen() # TODO: listen(port)
     app.connect_to_tracker() # TODO: connect_to_tracker(tracker)
 
