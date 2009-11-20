@@ -25,7 +25,7 @@ class PeerService(object):
     """
 
     # TODO: Refactor this. Use specific methods.
-    def __init__(self, ip, port, tracker_url, streaming_port):
+    def __init__(self, ip, port, tracker_url):
         """
         Inits the Peer application.
 
@@ -50,7 +50,6 @@ class PeerService(object):
         self._create_connection_manager()
         self._create_tracker_manager(tracker_url)
         self._create_joiner()
-        self._create_stream_server(streaming_port)
 
         # FIXME: seconds hardcoded
         self.logic_repeater = TwistedRepeater(self._peer_logic, 2)
@@ -123,7 +122,10 @@ class PeerService(object):
         self.connection_manager.connect_to_peers(peers)
 
     def _data_joined(self, joiner):
-        self.stream_server.send_stream(joiner.pop_stream())
+        if self.stream_server:
+            self.stream_server.send_stream(joiner.pop_stream())
+        else:
+            logging.debug('Data joined without stream_server')
 
     def _create_piece_manager(self):
         self.piece_manager = PieceManager()
@@ -143,10 +145,6 @@ class PeerService(object):
         self.joiner = Joiner()
         self.joiner.on_data_joined.add_handler(self._data_joined)
 
-    def _create_stream_server(self, streaming_port):
-        self.stream_server = TCPStreamServer(streaming_port)
-        self.stream_server.listen()
-
     def _generate_peer_id(self):
         id = uuid.uuid4().hex
         id = id[:14]
@@ -162,9 +160,8 @@ SPLIT_PACKET_SIZE = 64000
 
 class SourcePeerService(PeerService):
 
-    def __init__(self, ip, port, tracker_url, streaming_port):
-        super(SourcePeerService, self).__init__(ip, port,
-                                                tracker_url, streaming_port)
+    def __init__(self, ip, port, tracker_url):
+        super(SourcePeerService, self).__init__(ip, port, tracker_url)
 
         self.splitter = None
         self.stream_client  = None
