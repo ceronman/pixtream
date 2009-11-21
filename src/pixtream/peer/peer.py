@@ -19,7 +19,7 @@ def run():
     service = PeerService(ip, port, tracker)
     app = PeerApplication()
     app.set_service(service)
-    app.start_file_server('outtest')
+    app.start_http_server(streaming_port)
     app.listen()
     app.connect_to_tracker()
 
