@@ -126,7 +126,7 @@ class BaseProtocol(Int32StringReceiver):
 
     def receive_data_packet(self, msg):
         logging.info('Received data packet {0}'.format(msg.sequence))
-        self.peer_service.receive_packet(msg)
+        self.peer_service.receive_packet(msg, self.partner_id)
 
     def receive_default(self, msg):
         logging.error('Received message with no handler ' + str(type(msg)))

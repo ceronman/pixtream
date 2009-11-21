@@ -4,6 +4,7 @@ Piece manager
 
 import logging
 import itertools
+import random
 
 __all__ = ['PieceManager']
 
@@ -85,7 +86,7 @@ class PieceManager(object):
             return None
 
         else:
-            return next(iter(partners))
+            return random.choice(list(partners))
 
     def _update_last(self):
         for piece in itertools.count(self.last_continuous_piece):

@@ -12,8 +12,7 @@ from pixtream.peer.trackermanager import TrackerManager
 from pixtream.peer.connectionmanager import ConnectionManager
 from pixtream.peer.joiner import Joiner
 from pixtream.peer.splitter import Splitter
-from pixtream.peer.streamserver import TCPStreamServer
-from pixtream.peer.streamclient import TCPStreamClient, HTTPStreamClient, FileStreamClient
+from pixtream.peer.utilitymanager import UtilityManager
 from pixtream.peer.peerdatabase import PeerDatabase
 from pixtream.util.twistedrepeater import TwistedRepeater
 
@@ -47,6 +46,7 @@ class PeerService(object):
         self.stream_server = None
 
         self._create_piece_manager()
+        self._create_utility_manager()
         self._create_connection_manager()
         self._create_tracker_manager(tracker_url)
         self._create_joiner()
@@ -68,9 +68,12 @@ class PeerService(object):
     def receive_request(self, partner_id, sequence):
         self.piece_manager.partner_requested_piece(partner_id, sequence)
 
-    def receive_packet(self, packet):
+    def receive_packet(self, packet, sender_id):
         self.joiner.push_packet(packet)
         self.piece_manager.add_new_piece(packet.sequence, packet.data)
+        if sender_id is not None:
+            self.utility_manager.add_peer_utility(sender_id, len(packet.data))
+
         for connection in self.connection_manager.all_connections:
             connection.send_got_piece(packet.sequence)
 
@@ -87,7 +90,7 @@ class PeerService(object):
         for piece in missing_pieces:
             partner_id = self.piece_manager.best_partner_for_piece(piece)
             if partner_id is None:
-                logging.info('No partner for {0}'.format(piece))
+                logging.error('No partner for {0}'.format(piece))
                 continue
             connection = self.connection_manager.get_connection(partner_id)
             if connection is None:
@@ -144,6 +147,9 @@ class PeerService(object):
         self.joiner = Joiner()
         self.joiner.on_data_joined.add_handler(self._data_joined)
 
+    def _create_utility_manager(self):
+        self.utility_manager = UtilityManager()
+
     def _generate_peer_id(self):
         id = uuid.uuid4().hex
         id = id[:14]
@@ -172,7 +178,7 @@ class SourcePeerService(PeerService):
 
     def _packet_created(self, splitter):
         packet = splitter.pop_packet()
-        self.receive_packet(packet)
+        self.receive_packet(packet, None)
         logging.debug('Packet created. Seq: {0}'.format(packet.sequence))
 
     def _input_stream_end(self, splitter):
