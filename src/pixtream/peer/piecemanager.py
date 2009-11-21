@@ -8,6 +8,10 @@ import itertools
 __all__ = ['PieceManager']
 
 class PieceManager(object):
+
+    # FIXME: use configuration system
+    MAX_REQUESTS = 3
+
     def __init__(self):
         self.last_continuous_piece = 0
         self.own_pieces = {}
@@ -17,8 +21,12 @@ class PieceManager(object):
         self.pieces_requested_from = {}
 
     @property
-    def piece_sequences(self):
+    def own_sequences(self):
         return set(self.own_pieces.keys())
+
+    @property
+    def partners_sequences(self):
+        return set(self.partners_by_piece.keys())
 
     def add_new_piece(self, sequence, data):
         self.own_pieces[sequence] = data
@@ -63,15 +71,12 @@ class PieceManager(object):
         pieces = self.pieces_requested_to.setdefault(partner_id, set())
         return sequence not in pieces
 
-    def most_wanted_pieces(self, num):
-        pieces = []
-        for piece in itertools.count(self.last_continuous_piece):
-            if piece not in self.own_pieces:
-                pieces.append(piece)
-            if len(pieces) == num:
-                break
+    def get_pieces_to_request(self):
+        """ Implementation of the Rarest First Algorithm """
+        missing_pieces = list(self.partners_sequences - self.own_sequences)
+        missing_pieces.sort(key=lambda p: len(self.partners_by_piece[p]))
 
-        return pieces
+        return missing_pieces[:self.MAX_REQUESTS]
 
     def best_partner_for_piece(self, piece):
         partners = self.partners_by_piece.get(piece, [])

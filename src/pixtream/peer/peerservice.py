@@ -57,7 +57,7 @@ class PeerService(object):
 
     @property
     def pieces(self):
-        return self.piece_manager.piece_sequences
+        return self.piece_manager.own_sequences
 
     def partner_got_piece(self, partner_id, piece):
         self.piece_manager.partner_got_piece(partner_id, piece)
@@ -82,8 +82,7 @@ class PeerService(object):
 
     def _request_needed_pieces(self):
 
-        # FIXME: hardcoded number!!!
-        missing_pieces = self.piece_manager.most_wanted_pieces(3)
+        missing_pieces = self.piece_manager.get_pieces_to_request()
 
         for piece in missing_pieces:
             partner_id = self.piece_manager.best_partner_for_piece(piece)
