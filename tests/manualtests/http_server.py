@@ -5,7 +5,6 @@ HTTP Server Test
 from twisted.web2.resource import Resource
 from twisted.web2.http import Response
 from twisted.web2.stream import ProducerStream
-from twisted.application import service, strports
 from twisted.web2.channel import HTTPFactory
 from twisted.web2.server import Site
 from twisted.internet import reactor
