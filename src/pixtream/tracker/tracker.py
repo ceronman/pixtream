@@ -11,7 +11,7 @@ import sys
 from twisted.web import server
 from twisted.internet import reactor
 
-from pixtream.tracker.resource import TrackerResource
+from pixtream.tracker.resource import RootResource
 
 def _parse_options():
     parser = OptionParser()
@@ -38,7 +38,7 @@ def run():
     _setup_logger()
     options, _ = _parse_options()
 
-    site = server.Site(TrackerResource(options.interval))
+    site = server.Site(RootResource(options.interval))
     reactor.listenTCP(options.port, site)
 
     print 'Tracker listening on {0.port}'.format(options)

@@ -22,6 +22,7 @@ class Peer(object):
         self.id = peer_id
         self.ip = ip
         self.port = port
+        self.utility_factor = 0
         self.last_update = last_update
 
 class PeerManager(object):
@@ -33,6 +34,7 @@ class PeerManager(object):
         """Inits the peer list"""
 
         self.peers = {}
+        self.reported_utility_factors = {}
         self.peer_timeout = peer_timeout
 
         self._check_peers_timeout.start_now(self)
@@ -48,4 +50,28 @@ class PeerManager(object):
         """Receives an update of a Peer"""
         peer = Peer(peer_id, ip, port, time.time())
         self.peers[peer_id] = peer
+
+    def peer_exists(self, peer_id):
+        return self.peer_id in self.peers
+
+    def report_utility_factors(self, ip, utility_factors):
+        sender = None
+        for peer in self.peers.keys():
+            if peer.ip == ip:
+                sender = peer
+                break
+        if sender is None:
+            return
+
+        self.utility_factors[sender.id] = utility_factors
+
+        calculated_factors = {}
+
+        for factors in self.utility_factors.values():
+            for peer_id, uf in factors.items():
+                calculated_factors.setdefault(peer_id, 0)
+                calculated_factors[peer_id] += uf
+
+        for peer in self.peers.values():
+            peer.utility_factor = calculated_factors.get(peer.id, 0)
 
