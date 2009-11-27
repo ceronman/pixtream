@@ -13,7 +13,7 @@ from pixtream.peer.connectionmanager import ConnectionManager
 from pixtream.peer.joiner import Joiner
 from pixtream.peer.splitter import Splitter
 from pixtream.peer.utilitymanager import UtilityManager
-from pixtream.peer.peerdatabase import PeerDatabase
+from pixtream.peer.peerdatabase import PeerDatabase, Peer
 from pixtream.util.twistedrepeater import TwistedRepeater
 
 __all__ = ['PeerService', 'SourcePeerService']
@@ -83,6 +83,9 @@ class PeerService(object):
         self._request_needed_pieces()
         self._send_requested_pieces()
 
+        utility = self.utility_manager.utility_by_peer
+        self.tracker_manager.utility_by_peer.update(utility)
+
     def _request_needed_pieces(self):
 
         missing_pieces = self.piece_manager.get_pieces_to_request()
@@ -118,7 +121,9 @@ class PeerService(object):
     def _update_peers(self, sender, peer_list):
         self.tracker_peers.update_peers(peer_list)
         self.tracker_peers.remove_peer(self.peer_id)
-        logging.debug('Tracker updated: ' + str(self.tracker_peers.peer_ids))
+
+        peers = '|'.join(str(p) for p in self.tracker_manager.peer_list)
+        logging.debug('Tracker updated: {0}'.format(peers))
 
     def _contact_peers(self, peers):
         self.connection_manager.connect_to_peers(peers)
@@ -136,10 +141,8 @@ class PeerService(object):
         self.connection_manager = ConnectionManager(self)
 
     def _create_tracker_manager(self, tracker_url):
-        self.tracker_manager = TrackerManager(self.peer_id,
-                                              self.ip,
-                                              self.port,
-                                              tracker_url)
+        peer = Peer(self.peer_id, self.ip, self.port)
+        self.tracker_manager = TrackerManager(tracker_url, peer)
 
         self.tracker_manager.on_updated.add_handler(self._update_peers)
 

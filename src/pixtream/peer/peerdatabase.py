@@ -11,12 +11,16 @@ class Peer(object):
     Defines a peer as returned from the tracker.
     """
 
-    def __init__(self, id, ip, port):
+    def __init__(self, id, ip, port, uf=0):
         """Creates a peer from an id, port and IP address."""
 
         self.id = id
         self.ip = ip
         self.port = port
+        self.utility_factor = uf
+
+    def __str__(self):
+        return '{ip}:{port}:uf({utility_factor})'.format(**self.__dict__)
 
 class PeerDatabase(object):
     """

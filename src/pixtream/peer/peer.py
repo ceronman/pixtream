@@ -41,7 +41,7 @@ def run_source():
     app.set_service(service)
     app.start_http_server(streaming_port)
     app.listen() # TODO: listen(port)
-    app.connect_to_tracker() # TODO: connect_to_tracker(tracker)
+    app.connect_to_tracker() # TODO: announce(tracker)
 
     if source_type == 'http':
         app.connect_to_http_source(source)
