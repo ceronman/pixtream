@@ -48,26 +48,34 @@ class PeerManager(object):
 
     def update_peer(self, peer_id, ip, port):
         """Receives an update of a Peer"""
-        peer = Peer(peer_id, ip, port, time.time())
+        peer = self.peers.get(peer_id, None)
+        if peer is None:
+            peer = Peer(peer_id, ip, port, time.time())
+        else:
+            peer.id = peer_id
+            peer.ip = ip
+            peer.port = port
+            peer.last_update = time.time()
+
         self.peers[peer_id] = peer
 
     def peer_exists(self, peer_id):
-        return self.peer_id in self.peers
+        return peer_id in self.peers
 
     def report_utility_factors(self, ip, utility_factors):
         sender = None
-        for peer in self.peers.keys():
+        for peer in self.peers.values():
             if peer.ip == ip:
                 sender = peer
                 break
         if sender is None:
             return
 
-        self.utility_factors[sender.id] = utility_factors
+        self.reported_utility_factors[sender.id] = utility_factors
 
         calculated_factors = {}
 
-        for factors in self.utility_factors.values():
+        for factors in self.reported_utility_factors.values():
             for peer_id, uf in factors.items():
                 calculated_factors.setdefault(peer_id, 0)
                 calculated_factors[peer_id] += uf

@@ -35,7 +35,7 @@ class UtilityFactorResource(TrackerResource):
                 return self._encode_failure('Peer in utility factors does not '
                                             'exist in the tracker')
 
-            utility_factors[peer_id] = request.args[peer_id][0]
+            utility_factors[peer_id] = int(request.args[peer_id][0])
 
         if len(utility_factors) == 0:
             return self._encode_failure('No data provided')
@@ -52,6 +52,7 @@ class AnnounceResource(TrackerResource):
 
     def render_GET(self, request):
         """Renders the response to peers"""
+
         args = request.args
 
         peer_id = args.get('peer_id', [None])[0]
