@@ -21,7 +21,7 @@ def _parse_options():
                       help='Listening Port', metavar='PORT')
 
     parser.add_option('-i', '--interval', dest='interval',
-                      type='int', default=30,
+                      type='int', default=10,
                       help='Interval in seconds for peers to make requests',
                       metavar='INTERVAL')
 
