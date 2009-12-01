@@ -3,6 +3,7 @@ Defines classes for the the Pixtream Protocol
 """
 
 import logging
+import time
 
 from twisted.protocols.basic import Int32StringReceiver
 
@@ -27,6 +28,7 @@ class BaseProtocol(Int32StringReceiver):
         self.interested = False
         self.partner_choked = True
         self.partner_interested = False
+        self.last_heartbeat = time.time()
 
         self.handlers = {
             specs.HandshakeMessage: self.receive_handshake,
@@ -119,6 +121,7 @@ class BaseProtocol(Int32StringReceiver):
 
     def receive_heartbeat(self, msg):
         self._check_handshaked()
+        self.last_heartbeat = time.time()
 
     def receive_request_packet(self, msg):
         logging.info('Got packet request: {0} from {1}'.format(msg.sequence, self.partner_id))
@@ -144,6 +147,9 @@ class BaseProtocol(Int32StringReceiver):
 
         self.send_message(specs.HandshakeMessage, self.peer_service.peer_id)
         self.outgoing_handshaked = True
+
+    def send_heartbeat(self):
+        self.send_message(specs.HeartBeatMessage)
 
     def send_choke(self):
         self.send_message(specs.ChokeMessage)

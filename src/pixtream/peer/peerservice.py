@@ -79,6 +79,7 @@ class PeerService(object):
 
     def _peer_logic(self):
         logging.info('Executing Peer Logic')
+        self._refresh_connections()
         self._contact_peers(self.tracker_peers)
         self._request_needed_pieces()
         self._send_requested_pieces()
@@ -116,7 +117,7 @@ class PeerService(object):
                 return
             connection.send_data_packet(sequence, data)
             self.piece_manager.mark_piece_as_sent(partner_id, sequence)
-            logging.info('Sending piece {0} to {1}'.format(sequence, partner_id))
+            logging.info('Sending data {0} to {1}'.format(sequence, partner_id))
 
     def _update_peers(self, sender, peer_list):
         self.tracker_peers.update_peers(peer_list)
@@ -127,6 +128,10 @@ class PeerService(object):
 
     def _contact_peers(self, peers):
         self.connection_manager.connect_to_peers(peers)
+
+    def _refresh_connections(self):
+        self.connection_manager.heartbeat()
+        self.connection_manager.check_heartbeats()
 
     def _data_joined(self, joiner):
         if self.stream_server:

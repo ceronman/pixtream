@@ -4,6 +4,7 @@ Manages incoming and outgoing connections to other peers.
 
 import logging
 import itertools
+import time
 
 from twisted.internet.protocol import ServerFactory, ClientFactory
 from twisted.internet import reactor
@@ -135,6 +136,31 @@ class ConnectionManager(object):
             if peer.id in self._connections_ids:
                 continue
             self.connect_to_peer(peer)
+
+    def heartbeat(self):
+        """
+        Sends heartbeats
+        """
+
+        for connection in self.all_connections:
+            connection.send_heartbeat()
+
+    def check_heartbeats(self):
+        """
+        Check connections for last heartbeat
+        """
+
+        #FIXME: Put this in a configuration file
+        PEER_TIMEOUT  = 30
+
+        for connection in self.all_connections:
+            timeout = time.time() - connection.last_heartbeat
+            cid = connection.partner_id
+            logging.info('Checking peer timeout {0}'.format(cid))
+            if timeout > PEER_TIMEOUT:
+                logging.info('Peer Connection Timeout {0}'.format(cid))
+                connection.drop()
+
 
     @property
     def _connections_ids(self):
