@@ -10,8 +10,8 @@ into several chunks that are then sent to different peers in the network. A
 peer can download and upload chunks from several other peers, the program takes
 the chunks and reconstruct them into a stream.
 
-The objective of Pixtream is to distribute the upload bandwidth usage among all
-the peers in the network. Avoiding the bandwidth bottleneck commonly found in
+The goal of Pixtream is to distribute the upload bandwidth usage among all the
+peers in the network. Avoiding the bandwidth bottleneck commonly found in
 client-server streaming systems.
 
 Currently, Pixtream is in an early stage of development. Pixtream can create a
@@ -29,11 +29,11 @@ A Pixtream system has various separated components:
  - Source peer
  - Regular peer
 
- The streaming source can be any streaming server, like Flumotion. Currently
- PIXTREAM only supports simple TCP streams, in the future more streams will be
- supported.
+ The streaming source can be any streaming server or multimedia file. Currently
+ PIXTREAM only supports HTTP streams, TCP streams and file sources.  In the
+ future more stream soucers will be supported.
 
- The Tracker is very similar to a Bittorrent tracker. It's used to bootstrap to
+ The Tracker is very similar to a Bittorrent tracker. It's used to bootstrap
  the P2P network. Peers connect to the tracker to get information about the
  stream distributed and a list of other peers to exchange information with. The
  Pixtream tracker is based on the HTTP protocol and uses JSON as its
@@ -55,22 +55,20 @@ Usage
 ==============================================================================
 
 To create a Pixtream P2P network you need to have at least a streaming source,
-a tracker running and a source peer.
+a tracker and a source peer.
 
 
 Streaming source
 ------------------------------------------------------------------------------
 
-Pixtream currently supports simple TCP streams only. You can create a very
-simple streaming server with Netcat:
+Pixtream currently supports three types of streaming source: HTTP, TCP and
+File.
+
+An HTTP streaming source could be any HTTP streaming server.
+
+You can also create simple TCP streams using netcat. For example:
 
 $ nc -l -p 3000 < mediafile.ogg
-
-Trickle can be used to limit the bandwidth usage of Netcat and simulate a more
-realistic streaming server:
-
-$ trickle -u 30 'nc -l -p 3000 < mediafile.ogg'
-
 
 Tracker
 ------------------------------------------------------------------------------
@@ -88,7 +86,7 @@ Options:
 
 Example:
 
-$ tracker -p 8080 -i 30
+$ tracker -p 8080 -i 10
 
 
 Source peer
@@ -98,7 +96,7 @@ A source peer should connect to the tracker and the streaming source. The
 source peer program can be found in the bin directory of the Pixtream source
 distribution:
 
-Usage: usage: peersource [options] tracker_url source_host source_port
+Usage: peersource [options] tracker_url source_type source
 
 Options:
   -h, --help            show this help message and exit
@@ -109,12 +107,19 @@ Options:
                         Listening Port for the streaming output
 
 
-Example:
+Examples:
 
-$ peersource -p 60000 -s 30000 http://localhost:8080 localhost 30
+Using a HTTP streaming server as a streaming source:
 
-The peer would listen on port 60000 for peer communication and the
-reconstructed media would be streamed on streaming-port
+$ peersource http://tracker.com http http://source.com:8080
+
+Using a file a streaming source:
+
+$ peersource http://tracker.com file /var/song.mp3
+
+Using a TCP stream as a streaming source:
+
+$ peersource http://tracker.com tcp 192.168.1.10:30000
 
 
 Regular peer

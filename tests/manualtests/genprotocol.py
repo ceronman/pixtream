@@ -1,3 +1,4 @@
+# encoding:utf8
 """
 Protocol spec generator
 """
@@ -14,18 +15,19 @@ sys.path.append(pixtream_path)
 import string
 import struct
 import inspect
-import operator
 
 from pixtream.peer import specs
 
 ENTRY_TPL = string.Template(r'''
-\subsection{$name}
+\subsection{Mensaje \emph{$name}}
+\label{subsec:mensaje_$lower_name}
 
 $description
 
-\begin{table}[H]
+\begin{figure}[H]
+\begin{center}
 \begin{tabular}{$table_spec}
-\hline
+\toprule
 
     $struct_names \\
 
@@ -33,21 +35,22 @@ $description
 
     $struct_types \\
 
-\hline
+\bottomrule
 \end{tabular}
-\caption{Structure for $name message}
+\end{center}
+\caption{Estructura del mensaje \emph{$name}}
 \label{tab:structure_$lower_name}
-\end{table}
+\end{figure}
 
 \begin{table}[H]
-\begin{tabular}{p{0.3\textwidth} p{0.7\textwidth}}
+\begin{tabular}{p{0.2\textwidth} p{0.8\textwidth}}
 \toprule
-    \textbf{Field} & \textbf{Description} \\
+    \textbf{Campo} & \textbf{Descripción} \\
 \midrule
     $field_descriptions
 \bottomrule
 \end{tabular}
-\caption{Field description for $name message}
+\caption{Campos del mensaje \emph{$name}}
 \label{tab:description_$lower_name}
 \end{table}
 ''')
@@ -70,7 +73,12 @@ def generate_message_doc(message):
         return NAME_TPL.substitute(name=name)
 
     def field_size(field):
-        size =  '{0} bytes'.format(struct.calcsize(field.struct_string))
+        size = struct.calcsize(field.struct_string)
+
+        if size == 1:
+            size = '1 byte'
+        else:
+            size =  '{0} bytes'.format(size)
         return SIZE_TPL.substitute(size=size)
 
     def field_type(field):
@@ -97,10 +105,9 @@ def generate_message_doc(message):
     struct_sizes = COLUMN_SEP.join(sizes)
     struct_types = COLUMN_SEP.join(types)
 
-    spec_values = SPEC_SEP.join([SPEC_VALUE] * len(all_fields))
-    table_spec = SPEC_SEP + spec_values + SPEC_SEP
+    table_spec = SPEC_SEP.join([SPEC_VALUE] * len(all_fields))
 
-    name = message.__name__
+    name = message.__name__.replace('Message', '')
     lower_name = name.lower()
     description = message.__doc__.strip()
 
